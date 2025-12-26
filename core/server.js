@@ -360,11 +360,11 @@ async function printInvoice(printer, data) {
 
   printer.drawLine();
 
-  printer.leftRight("Sub Total: ", masterData.BillTotalField.toFixed(3));
-  printer.leftRight("Disc Amt: ", masterData.BillDiscAmtField.toFixed(3));
-  printer.leftRight("Tax Amt: ", masterData.TItTaxAmt.toFixed(3));
-  printer.leftRight("Other Chrg: ", masterData.BillPackageField.toFixed(3));
-  printer.leftRight("Net Total: ", masterData.BillNetTotalField.toFixed(3));
+  printer.leftRight("Sub Total: ", master.BillTotalField.toFixed(3));
+  printer.leftRight("Disc Amt: ", master.BillDiscAmtField.toFixed(3));
+  printer.leftRight("Tax Amt: ", master.TItTaxAmt.toFixed(3));
+  printer.leftRight("Other Chrg: ", master.BillPackageField.toFixed(3));
+  printer.leftRight("Net Total: ", master.BillNetTotalField.toFixed(3));
   printer.bold(true);
   printer.alignRight();
   printer.println(
