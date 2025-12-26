@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width">
+<title>Cloudflare</title>
+<style>
+body{font-family:system-ui;background:#f8fafc}
+.card{background:#fff;margin:10px;padding:14px;border-radius:12px}
+code,pre{background:#eef;padding:8px;border-radius:6px;display:block}
+</style>
+</head>
+<body>
+
+<h2 style="margin:10px">☁ Cloudflare Tunnel</h2>
+
+<div class="card" id="info">Loading...</div>
+
+<div class="card">
+<h3>Print API</h3>
+<pre>
+POST /print
+POST /pdftoimg
+POST /pdfdirect
+POST /img
+POST /html
+</pre>
+</div>
+
+<div class="card">
+<h3>Example Curl</h3>
+<pre id="curl"></pre>
+</div>
+
+<script>
+fetch("/api/cloudflare")
+.then(r=>r.json())
+.then(d=>{
+  if(d.url){
+    info.innerHTML=`
+    <b>Status:</b> Active<br>
+    <b>Public URL:</b><br>
+    <code>${d.url}</code>
+    `;
+    curl.textContent=
+`curl -X POST ${d.url}/print \\
+ -H "x-printer-id: Cashier1" \\
+ -d '{"text":"Hello Cloudflare"}'`;
+  } else {
+    info.innerHTML="<b>Cloudflare disabled</b>";
+  }
+});
+</script>
+
+</body>
+</html>

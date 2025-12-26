@@ -1,0 +1,44 @@
+{
+  "id": "kot_basic",
+  "name": "Basic KOT",
+  "type": "KOT",
+  "version": "1.0",
+
+  "enabled": true,
+
+  "printer": {
+    "role": "KITCHEN",
+    "fallbackRole": "CASHIER"
+  },
+
+  "paper": {
+    "width": 576,
+    "cut": true,
+    "feedAfter": 2
+  },
+
+  "encoding": {
+    "mode": "AUTO",
+    "fallback": "UTF-8"
+  },
+
+  "layout": {
+    "align": "LEFT",
+    "boldHeader": true,
+    "lineSeparator": "--------------------------------"
+  },
+
+  "sections": [
+    "header",
+    "order_info",
+    "items",
+    "footer"
+  ],
+
+  "dataMapping": {
+    "orderNo": "master.OrderNo",
+    "tableNo": "master.TableNo",
+    "kotTime": "master.BillTime",
+    "items": "table"
+  }
+}

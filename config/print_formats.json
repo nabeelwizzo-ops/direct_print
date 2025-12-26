@@ -1,0 +1,16 @@
+{
+  "formats": [
+    {
+      "id": "invoice_tax",
+      "engine": "JAVA",
+      "jasper": "ThermalPrintB2b_TAXGST",
+      "role": "CASHIER"
+    },
+    {
+      "id": "kot",
+      "engine": "NODE",
+      "template": "kot.html",
+      "role": "KITCHEN"
+    }
+  ]
+}

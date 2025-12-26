@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Registered Devices</title>
+<style>
+body{font-family:monospace;background:#020617;color:#e5e7eb;padding:20px}
+table{width:100%;border-collapse:collapse}
+td,th{border:1px solid #334155;padding:6px}
+</style>
+</head>
+<body>
+
+<h2>📋 Registered Clients</h2>
+<table id="t">
+<tr>
+<th>Client ID</th>
+<th>Server ID</th>
+<th>Mobile ID</th>
+<th>PIN</th>
+</tr>
+</table>
+
+<script>
+fetch("/admin/clients")
+.then(r=>r.json())
+.then(d=>{
+ d.forEach(x=>{
+  t.innerHTML+=`
+   <tr>
+    <td>${x.client_id}</td>
+    <td>${x.server_id}</td>
+    <td>${x.mobile_id}</td>
+    <td>${x.print_key}</td>
+   </tr>`;
+ });
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "id": "KOT_BASIC",
+  "type": "KOT",
+  "engine": "node",
+  "paperWidth": 576,
+  "cut": true,
+  "fields": ["table", "items", "note"]
+}

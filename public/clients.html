@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Client Management - AndroPrint</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        h2 {
+            color: #4a5568;
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .subtitle {
+            color: #718096;
+            font-size: 0.95rem;
+            margin-bottom: 20px;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .stat-card {
+            background: #f7fafc;
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+            flex: 1;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #4a5568;
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 0.8rem;
+            color: #718096;
+            margin-top: 4px;
+        }
+        
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .create-btn {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            border: none;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(72, 187, 120, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .create-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(72, 187, 120, 0.4);
+        }
+        
+        .create-btn:active {
+            transform: translateY(0);
+        }
+        
+        .refresh-btn {
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .clients-list {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        
+        .list-header {
+            background: #f8fafc;
+            padding: 18px 20px;
+            border-bottom: 2px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .list-title {
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 1.1rem;
+        }
+        
+        .clients-container {
+            max-height: 400px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .client-item {
+            padding: 18px 20px;
+            border-bottom: 1px solid #edf2f7;
+            transition: background 0.2s ease;
+        }
+        
+        .client-item:hover {
+            background: #f8fafc;
+        }
+        
+        .client-item:last-child {
+            border-bottom: none;
+        }
+        
+        .client-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .client-id {
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 1rem;
+            background: #edf2f7;
+            padding: 4px 12px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+        
+        .client-role {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .role-admin {
+            background: #fed7d7;
+            color: #c53030;
+        }
+        
+        .role-client {
+            background: #c6f6d5;
+            color: #276749;
+        }
+        
+        .client-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .info-label {
+            font-size: 0.85rem;
+            color: #718096;
+            font-weight: 500;
+        }
+        
+        .info-value {
+            font-size: 0.95rem;
+            color: #2d3748;
+            font-weight: 500;
+            word-break: break-all;
+        }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .status-enabled {
+            background: #c6f6d5;
+            color: #276749;
+        }
+        
+        .status-disabled {
+            background: #fed7d7;
+            color: #c53030;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        
+        .status-enabled .status-dot {
+            background: #38a169;
+        }
+        
+        .status-disabled .status-dot {
+            background: #e53e3e;
+        }
+        
+        .no-clients {
+            text-align: center;
+            padding: 40px 20px;
+            color: #a0aec0;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: modalSlide 0.3s ease;
+        }
+        
+        @keyframes modalSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .modal-header {
+            margin-bottom: 25px;
+        }
+        
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 8px;
+        }
+        
+        .modal-subtitle {
+            color: #718096;
+            font-size: 0.95rem;
+        }
+        
+        .credentials {
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 25px 0;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .credential-item {
+            margin-bottom: 15px;
+        }
+        
+        .credential-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .credential-label {
+            font-size: 0.9rem;
+            color: #718096;
+            margin-bottom: 5px;
+            display: block;
+        }
+        
+        .credential-value {
+            font-family: 'Courier New', monospace;
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            font-size: 0.95rem;
+            word-break: break-all;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .copy-btn {
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        
+        .copy-btn:hover {
+            background: #3182ce;
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+        }
+        
+        .btn-primary {
+            flex: 1;
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        
+        .btn-secondary {
+            flex: 1;
+            background: #e2e8f0;
+            color: #4a5568;
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        
+        .btn-primary:hover {
+            background: #3182ce;
+        }
+        
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #48bb78;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            z-index: 1001;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            animation: toastSlide 0.3s ease;
+        }
+        
+        @keyframes toastSlide {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+        
+        .loading {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 15px;
+            padding: 40px 20px;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid #4299e1;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 480px) {
+            .header {
+                padding: 15px;
+            }
+            
+            h2 {
+                font-size: 1.5rem;
+            }
+            
+            .stats {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .client-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .client-info {
+                grid-template-columns: 1fr;
+            }
+            
+            .modal-content {
+                padding: 20px;
+            }
+            
+            .modal-actions {
+                flex-direction: column;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+            
+            .create-btn, .refresh-btn {
+                padding: 14px 20px;
+                font-size: 0.95rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header Section -->
+        <div class="header">
+            <h2>Client Management</h2>
+            <div class="subtitle">Manage API clients and PINs for AndroPrint</div>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <span class="stat-value" id="totalClients">0</span>
+                    <span class="stat-label">Total Clients</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="adminCount">0</span>
+                    <span class="stat-label">Admins</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="activeCount">0</span>
+                    <span class="stat-label">Active</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Controls -->
+        <div class="controls">
+            <button class="create-btn" onclick="createClient()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 5v14M5 12h14"/>
+                </svg>
+                Create New Client
+            </button>
+            <button class="refresh-btn" onclick="loadClients()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+                </svg>
+                Refresh List
+            </button>
+        </div>
+        
+        <!-- Clients List -->
+        <div class="clients-list">
+            <div class="list-header">
+                <div class="list-title">Registered Clients</div>
+                <div class="client-count" id="listCount">0 clients</div>
+            </div>
+            
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <div>Loading clients...</div>
+            </div>
+            
+            <div class="clients-container" id="clientsContainer">
+                <!-- Clients will be dynamically inserted here -->
+            </div>
+        </div>
+        
+        <!-- New Client Modal -->
+        <div id="newClientModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title">New Client Created Successfully</h3>
+                    <div class="modal-subtitle">Save these credentials securely. The PIN cannot be recovered.</div>
+                </div>
+                
+                <div class="credentials">
+                    <div class="credential-item">
+                        <span class="credential-label">Client ID</span>
+                        <div class="credential-value">
+                            <span id="modalClientId"></span>
+                            <button class="copy-btn" onclick="copyToClipboard('modalClientId')">Copy</button>
+                        </div>
+                    </div>
+                    
+                    <div class="credential-item">
+                        <span class="credential-label">PIN</span>
+                        <div class="credential-value">
+                            <span id="modalPin"></span>
+                            <button class="copy-btn" onclick="copyToClipboard('modalPin')">Copy</button>
+                        </div>
+                    </div>
+                    
+                    <div class="credential-item">
+                        <span class="credential-label">Role</span>
+                        <div class="credential-value">
+                            <span id="modalRole"></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button class="btn-secondary" onclick="closeModal()">Close</button>
+                    <button class="btn-primary" onclick="copyAllCredentials()">Copy All</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Toast Notification -->
+        <div id="toast" class="toast">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 6L9 17l-5-5"/>
+            </svg>
+            <span id="toastMessage">Copied to clipboard!</span>
+        </div>
+    </div>
+    
+    <script>
+        // API Configuration
+        const API_BASE = window.location.origin;
+        
+        // DOM Elements
+        const clientsContainer = document.getElementById('clientsContainer');
+        const loadingElement = document.getElementById('loading');
+        const newClientModal = document.getElementById('newClientModal');
+        const toastElement = document.getElementById('toast');
+        const toastMessage = document.getElementById('toastMessage');
+
+        // Utility Functions
+        function showToast(message) {
+            toastMessage.textContent = message;
+            toastElement.style.display = 'flex';
+            setTimeout(() => {
+                toastElement.style.display = 'none';
+            }, 3000);
+        }
+
+        function showLoading() {
+            loadingElement.style.display = 'flex';
+            clientsContainer.innerHTML = '';
+        }
+
+        function hideLoading() {
+            loadingElement.style.display = 'none';
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // API Functions
+        async function fetchClients() {
+            try {
+                const response = await fetch(`${API_BASE}/api/clients`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                return data.clients || [];
+            } catch (error) {
+                console.error('Error fetching clients:', error);
+                showToast('Failed to load clients');
+                return [];
+            }
+        }
+
+        async function createNewClient() {
+            try {
+                const response = await fetch(`${API_BASE}/api/client/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const client = await response.json();
+                return client;
+            } catch (error) {
+                console.error('Error creating client:', error);
+                showToast('Failed to create client');
+                throw error;
+            }
+        }
+
+        // UI Functions
+        function updateStats(clients) {
+            const total = clients.length;
+            const admins = clients.filter(c => c.role === 'ADMIN').length;
+            const active = clients.filter(c => c.enabled).length;
+            
+            document.getElementById('totalClients').textContent = total;
+            document.getElementById('adminCount').textContent = admins;
+            document.getElementById('activeCount').textContent = active;
+            document.getElementById('listCount').textContent = `${total} client${total !== 1 ? 's' : ''}`;
+        }
+
+        function renderClients(clients) {
+            if (clients.length === 0) {
+                clientsContainer.innerHTML = `
+                    <div class="no-clients">
+                        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#a0aec0" stroke-width="1">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        <div style="margin-top: 15px; font-size: 1.1rem;">No clients found</div>
+                        <div style="margin-top: 5px; font-size: 0.9rem;">Click "Create New Client" to add one</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            clientsContainer.innerHTML = clients.map(client => `
+                <div class="client-item">
+                    <div class="client-header">
+                        <div class="client-id">${client.id}</div>
+                        <div class="client-role ${client.role === 'ADMIN' ? 'role-admin' : 'role-client'}">
+                            ${client.role}
+                        </div>
+                    </div>
+                    
+                    <div class="client-info">
+                        <div class="info-item">
+                            <span class="info-label">PIN</span>
+                            <span class="info-value">${client.pin}</span>
+                        </div>
+                        
+                        <div class="info-item">
+                            <span class="info-label">Status</span>
+                            <div class="status-badge ${client.enabled ? 'status-enabled' : 'status-disabled'}">
+                                <div class="status-dot"></div>
+                                ${client.enabled ? 'Enabled' : 'Disabled'}
+                            </div>
+                        </div>
+                        
+                        <div class="info-item">
+                            <span class="info-label">Created</span>
+                            <span class="info-value">${formatDate(client.createdAt)}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function loadClients() {
+            showLoading();
+            const clients = await fetchClients();
+            updateStats(clients);
+            renderClients(clients);
+            hideLoading();
+        }
+
+        async function createClient() {
+            try {
+                const client = await createNewClient();
+                
+                // Update modal with new client data
+                document.getElementById('modalClientId').textContent = client.id;
+                document.getElementById('modalPin').textContent = client.pin;
+                document.getElementById('modalRole').textContent = client.role;
+                
+                // Show modal
+                newClientModal.style.display = 'flex';
+                
+                // Reload the list
+                await loadClients();
+                
+            } catch (error) {
+                console.error('Error in createClient:', error);
+            }
+        }
+
+        function closeModal() {
+            newClientModal.style.display = 'none';
+        }
+
+        function copyToClipboard(elementId) {
+            const text = document.getElementById(elementId).textContent;
+            navigator.clipboard.writeText(text)
+                .then(() => showToast('Copied to clipboard!'))
+                .catch(err => {
+                    console.error('Failed to copy:', err);
+                    showToast('Failed to copy');
+                });
+        }
+
+        function copyAllCredentials() {
+            const clientId = document.getElementById('modalClientId').textContent;
+            const pin = document.getElementById('modalPin').textContent;
+            const text = `Client ID: ${clientId}\nPIN: ${pin}`;
+            
+            navigator.clipboard.writeText(text)
+                .then(() => showToast('All credentials copied!'))
+                .catch(err => {
+                    console.error('Failed to copy:', err);
+                    showToast('Failed to copy');
+                });
+        }
+
+        // Event Listeners
+        window.onclick = function(event) {
+            if (event.target === newClientModal) {
+                closeModal();
+            }
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', loadClients);
+    </script>
+</body>
+</html>

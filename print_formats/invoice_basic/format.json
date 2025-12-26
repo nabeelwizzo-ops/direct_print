@@ -1,0 +1,13 @@
+{
+  "id": "invoice_basic",
+  "paperWidth": 576,
+  "cut": true,
+  "encoding": "AUTO",
+  "sections": [
+    "company",
+    "master",
+    "table",
+    "total",
+    "footer"
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "clients": [
+    {
+      "id": "clt-2c9b78",
+      "pin": "821727",
+      "role": "CLIENT",
+      "enabled": true,
+      "createdAt": "2025-12-19T10:04:15.795Z"
+    },
+    {
+      "id": "clt-ea0798",
+      "pin": "956996",
+      "role": "CLIENT",
+      "enabled": true,
+      "createdAt": "2025-12-19T10:28:05.978Z"
+    },
+    {
+      "id": "clt-9d97a8",
+      "pin": "835600",
+      "role": "CLIENT",
+      "enabled": true,
+      "createdAt": "2025-12-19T11:49:46.880Z"
+    },
+    {
+      "id": "admin",
+      "pin": "999999",
+      "role": "CLIENT",
+      "enabled": true,
+      "createdAt": "2025-12-19T13:45:45.847Z"
+    }
+  ]
+}

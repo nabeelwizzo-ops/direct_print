@@ -1,0 +1,21 @@
+# Node / npm
+node_modules/
+package-lock.json
+
+# Environment files
+.env
+printer.env
+
+# Database
+print_server.db
+
+# Uploads (keep folder only)
+uploads/*
+!uploads/.gitkeep
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,21 @@
+{
+  "printers": [
+    {
+      "id": "cashier1-166558",
+      "name": "Cashier1",
+      "role": "CASHIER",
+      "enabled": true,
+      "connection": {
+        "ip": "192.168.1.4",
+        "port": 9100
+      },
+      "paper": {
+        "name": "RECIEPT(72mm)",
+        "width": 576
+      },
+      "printSettings": {
+        "cut": true
+      }
+    }
+  ]
+}

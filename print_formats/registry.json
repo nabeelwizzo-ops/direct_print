@@ -1,0 +1,18 @@
+{
+  "formats": [
+    {
+      "id": "invoice_basic",
+      "name": "Basic Invoice",
+      "type": "INVOICE",
+      "printerRole": "CASHIER",
+      "enabled": true
+    },
+    {
+      "id": "kot_basic",
+      "name": "Kitchen Order Ticket",
+      "type": "KOT",
+      "printerRole": "KITCHEN",
+      "enabled": true
+    }
+  ]
+}

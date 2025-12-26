@@ -1,0 +1,4 @@
+node_modules/
+uploads/
+print_server.db
+.env

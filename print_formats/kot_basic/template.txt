@@ -1,0 +1,8 @@
+KOT
+Table: {{master.TableNo}}
+Order: {{master.OrderNo}}
+--------------------------------
+{{#table}}
+{{qty}} x {{ItemNameTextField}}
+{{/table}}
+--------------------------------

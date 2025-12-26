@@ -1,0 +1,15 @@
+{{company.Name}}
+{{company.Place}}
+Ph: {{company.Ph}}
+--------------------------------
+Bill No : {{master.BillNo}}
+Date    : {{master.BillDate}} {{master.BillTime}}
+Party   : {{master.BillPartyName}}
+--------------------------------
+{{#table}}
+{{ItemNameTextField}}  x{{qty}}   {{total}}
+{{/table}}
+--------------------------------
+NET TOTAL : {{master.BillNetTotalField}}
+--------------------------------
+Thank You!
