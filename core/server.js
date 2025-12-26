@@ -317,11 +317,10 @@ async function printInvoice(printer, data) {
       cols: 3,
       bold: true,
     },
-    { text: "Rate", align: "RIGHT", cols: 9, bold: true },
+    { text: "Rate", align:    "RIGHT", cols: 9, bold: true },
     { text: "Tax-Amt", align: "RIGHT", cols: 9, bold: true },
     { text: "Net-Amt", align: "RIGHT", cols: 9, bold: true },
   ]);
-  printer.drawLine();
   printer.drawLine();
 
   table.forEach((it, i) => {
