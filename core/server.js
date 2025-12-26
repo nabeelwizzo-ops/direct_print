@@ -270,6 +270,12 @@ app.post("/print", authRequired, async (req, res) => {
 //   await printer.execute();
 // }
 
+
+function fmt(val, digits = 2) {
+  const num = Number(val);
+  return isNaN(num) ? Number(0).toFixed(digits) : num.toFixed(digits);
+}
+
 async function printInvoice(printer, data) {
   const { company = [], master = {}, table = [] } = data;
   const comp = company[0] || {};
@@ -331,59 +337,48 @@ async function printInvoice(printer, data) {
     //   },
     // ]);
 
-    printer.tableCustom([
-      { text: i + 1, align: "LEFT", cols: 3 },
+        printer.tableCustom([
+      { text: i + 1, cols: 3, align: "LEFT" },
       {
-        text: it.ItemNameTextField,
-        align: "LEFT",
+        text: String(it.ItemNameTextField || "").substring(0, 30),
         cols: 45,
+        align: "LEFT",
       },
     ]);
 
-    printer.tableCustom([
-      { text: "", align: "LEFT", cols: 3 },
-      {
-        text: "",
-        align: "LEFT",
-        cols: 15,
-      },
-      {
-        text: it.qty,
-        align: "CENTER",
-        cols: 3,
-      },
-      { text: it.Rate1.toFixed(2),  align: "RIGHT", cols: 9 },
-      { text: it.taxAmt.toFixed(2), align: "RIGHT", cols: 9 },
-      { text: it.total.toFixed(2),  align: "RIGHT", cols: 9 },
+       printer.tableCustom([
+      { text: "", cols: 3 },
+      { text: "", cols: 15 },
+      { text: it.qty ?? 0, cols: 3, align: "CENTER" },
+      { text: fmt(it.Rate1, 2), cols: 9, align: "RIGHT" },
+      { text: fmt(it.taxAmt, 2), cols: 9, align: "RIGHT" },
+      { text: fmt(it.total, 2), cols: 9, align: "RIGHT" },
     ]);
   });
 
   printer.drawLine();
 
-  printer.leftRight("Sub Total: ", master.BillTotalField.toFixed(3));
-  printer.leftRight("Disc Amt: ", master.BillDiscAmtField.toFixed(3));
-  printer.leftRight("Tax Amt: ", master.TItTaxAmt.toFixed(3));
-  printer.leftRight("Other Chrg: ", master.BillPackageField.toFixed(3));
-  printer.leftRight("Net Total: ", master.BillNetTotalField.toFixed(3));
+   /* ===== TOTALS ===== */
+  printer.leftRight("Sub Total", fmt(master.BillTotalField, 2));
+  printer.leftRight("Discount", fmt(master.BillDiscAmtField, 2));
+  printer.leftRight("Tax", fmt(master.TItTaxAmt, 2));
+  printer.leftRight("Other Chrg", fmt(master.BillPackageField, 2));
+  printer.leftRight("Net Total", fmt(master.BillNetTotalField, 2));
+
+  printer.drawLine();
+
   printer.bold(true);
   printer.alignRight();
-  printer.println(
-    "NET TOTAL : " + Number(master.BillNetTotalField || 0).toFixed(2)
-  );
+  printer.println("NET TOTAL : " + fmt(master.BillNetTotalField, 2));
   printer.bold(false);
 
   printer.drawLine("-");
-  printer.drawLine("-");
-  printer.newLine();
   printer.alignCenter();
   printer.println("Thank you for shopping with us!");
   printer.newLine();
-  printer.newLine();
-  printer.drawLine("-");
   printer.cut();
   printer.beep();
-  printer.beep();
-  printer.beep();
+
 
   await printer.execute();
 }
