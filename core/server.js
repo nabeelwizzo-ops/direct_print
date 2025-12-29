@@ -9,6 +9,9 @@ const cors = require("cors");
 const net = require("net");
 
 const { ThermalPrinter, PrinterTypes } = require("node-thermal-printer");
+//
+const axios = require("axios");
+//
 
 const app = express();
 app.use(cors());
@@ -276,13 +279,34 @@ function fmt(val, digits = 2) {
 }
 
 async function printInvoice(printer, data) {
-  const { company = [], master = {}, table = [] , isInvoiceData = {} ,  kotTableData = [] } = data;
+  const {
+    company = [],
+    master = {},
+    table = [],
+    isInvoiceData = {},
+    kotTableData = [],
+  } = data;
   const comp = company[0] || {};
 
   const typ = data?.typ ?? "";
   const qr_data = data?.qrData ?? "";
+  const logo = data?.logo ?? "";
 
   printer.alignCenter();
+
+  /* =========================
+     LOGO PRINT
+  ========================= */
+  if (logo) {
+    try {
+      const logoPath = await downloadImage(logo);
+      await printer.printImage(logoPath);
+      printer.newLine();
+    } catch (e) {
+      console.error("Logo print failed:", e.message);
+    }
+  }
+
   printer.bold(true);
   printer.println(comp.Name || "COMPANY");
   printer.bold(false);
@@ -374,36 +398,54 @@ async function printInvoice(printer, data) {
 
   printer.drawLine("-");
 
-
-    /* =========================
+  /* =========================
        7. QR CODE (ZATCA / EINVOICE)
     ========================= */
-    if (
-      typ === "THERMAL_3INCH_DIRECT_VAT" &&
-      isInvoiceData?.isInvoice &&
-      qr_data
-    ) {
-      printer.alignCenter();
-      printer.println("Scan for e-Invoice");
-
-      printer.printQR(qr_data, {
-        cellSize: 6,
-        correction: "M"
-      });
-
-      printer.newLine();
-    }
-    /* =========================
-       8. FOOTER
-    ========================= */
+  if (
+    typ === "THERMAL_3INCH_DIRECT_VAT" &&
+    isInvoiceData?.isInvoice &&
+    qr_data
+  ) {
     printer.alignCenter();
-    printer.println("Thank you for shopping with us!");
+    printer.println("Scan for e-Invoice");
+
+    printer.printQR(qr_data, {
+      cellSize: 6,
+      correction: "M",
+    });
 
     printer.newLine();
-    printer.cut();
-    printer.beep();
+  }
+  /* =========================
+       8. FOOTER
+    ========================= */
+  printer.alignCenter();
+  printer.println("Thank you for shopping with us!");
+
+  printer.newLine();
+  printer.cut();
+  printer.beep();
 
   await printer.execute();
+}
+
+async function downloadImage(url) {
+  const filePath = path.join(__dirname, "logo.png");
+
+  const response = await axios({
+    url,
+    method: "GET",
+    responseType: "stream",
+  });
+
+  await new Promise((resolve, reject) => {
+    const stream = fs.createWriteStream(filePath);
+    response.data.pipe(stream);
+    stream.on("finish", resolve);
+    stream.on("error", reject);
+  });
+
+  return filePath;
 }
 
 /* ===============================
