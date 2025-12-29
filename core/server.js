@@ -270,15 +270,17 @@ app.post("/print", authRequired, async (req, res) => {
 //   await printer.execute();
 // }
 
-
 function fmt(val, digits = 2) {
   const num = Number(val);
   return isNaN(num) ? Number(0).toFixed(digits) : num.toFixed(digits);
 }
 
 async function printInvoice(printer, data) {
-  const { company = [], master = {}, table = [] } = data;
+  const { company = [], master = {}, table = [] , isInvoiceData = {} ,  kotTableData = [] } = data;
   const comp = company[0] || {};
+
+  const typ = data?.typ ?? "";
+  const qr_data = data?.qrData ?? "";
 
   printer.alignCenter();
   printer.bold(true);
@@ -317,14 +319,13 @@ async function printInvoice(printer, data) {
       cols: 3,
       bold: true,
     },
-    { text: "Rate", align:    "RIGHT", cols: 9, bold: true },
+    { text: "Rate", align: "RIGHT", cols: 9, bold: true },
     { text: "Tax-Amt", align: "RIGHT", cols: 9, bold: true },
     { text: "Net-Amt", align: "RIGHT", cols: 9, bold: true },
   ]);
   printer.drawLine();
 
   table.forEach((it, i) => {
-
     // printer.tableCustom([
     //   { text: String(i + 1), cols: 3 },
     //   { text: String(it.ItemNameTextField || "").substring(0, 18), cols: 18 },
@@ -336,7 +337,7 @@ async function printInvoice(printer, data) {
     //   },
     // ]);
 
-        printer.tableCustom([
+    printer.tableCustom([
       { text: i + 1, cols: 3, align: "LEFT" },
       {
         text: String(it.ItemNameTextField || "").substring(0, 30),
@@ -345,7 +346,7 @@ async function printInvoice(printer, data) {
       },
     ]);
 
-       printer.tableCustom([
+    printer.tableCustom([
       { text: "", cols: 3 },
       { text: "", cols: 15 },
       { text: it.qty ?? 0, cols: 3, align: "CENTER" },
@@ -357,7 +358,7 @@ async function printInvoice(printer, data) {
 
   printer.drawLine();
 
-   /* ===== TOTALS ===== */
+  /* ===== TOTALS ===== */
   printer.leftRight("Sub Total", fmt(master.BillTotalField, 2));
   printer.leftRight("Discount", fmt(master.BillDiscAmtField, 2));
   printer.leftRight("Tax", fmt(master.TItTaxAmt, 2));
@@ -372,12 +373,35 @@ async function printInvoice(printer, data) {
   printer.bold(false);
 
   printer.drawLine("-");
-  printer.alignCenter();
-  printer.println("Thank you for shopping with us!");
-  printer.newLine();
-  printer.cut();
-  printer.beep();
 
+
+    /* =========================
+       7. QR CODE (ZATCA / EINVOICE)
+    ========================= */
+    if (
+      typ === "THERMAL_3INCH_DIRECT_VAT" &&
+      isInvoiceData?.isInvoice &&
+      qr_data
+    ) {
+      printer.alignCenter();
+      printer.println("Scan for e-Invoice");
+
+      printer.printQR(qr_data, {
+        cellSize: 6,
+        correction: "M"
+      });
+
+      printer.newLine();
+    }
+    /* =========================
+       8. FOOTER
+    ========================= */
+    printer.alignCenter();
+    printer.println("Thank you for shopping with us!");
+
+    printer.newLine();
+    printer.cut();
+    printer.beep();
 
   await printer.execute();
 }
