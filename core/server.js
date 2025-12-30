@@ -523,6 +523,8 @@ async function printInvoice(printer, data) {
   printer.newLine();
   printer.cut();
   printer.beep();
+  printer.beep();
+  printer.beep();
 
   await printer.execute();
 }
