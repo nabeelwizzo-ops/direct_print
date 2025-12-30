@@ -154,60 +154,159 @@ app.get("/api/printers", async (req, res) => {
    PRINT ROUTE (AUTO MODE)
 ================================ */
 
-app.post("/print", authRequired, async (req, res) => {
+// app.post("/print", authRequired, async (req, res) => {
+//   try {
+//     const printerId = req.headers["x-printer-id"];
+//     if (!printerId) {
+//       return res.status(400).json({ error: "x-printer-id missing" });
+//     }
+
+//     const printerCfg = loadPrinters().find(
+//       (p) =>
+//         p.enabled &&
+//         (p.id.toLowerCase() === printerId.toLowerCase() ||
+//           p.name?.toLowerCase() === printerId.toLowerCase())
+//     );
+
+//     if (!printerCfg) {
+//       return res.status(404).json({ error: "Printer not found or disabled" });
+//     }
+
+//     const printer = new ThermalPrinter({
+//       type: PrinterTypes.EPSON,
+//       interface: `tcp://${printerCfg.connection.ip}:${printerCfg.connection.port}`,
+//       timeout: 15000,
+//     });
+
+//     if (!(await printer.isPrinterConnected())) {
+//       return res.status(500).json({ error: "Printer offline" });
+//     }
+
+//     const body = req.body || {};
+
+//     /* ========= AUTO DETECT ========= */
+
+//     // 1️⃣ INVOICE JSON
+//     if (body.isInvoiceData?.isInvoice) {
+//       await printInvoice(printer, body);
+//       return res.json({ success: true, mode: "invoice" });
+//     }
+
+//     // 2️⃣ TEXT
+//     if (body.text) {
+//       printer.println(body.text);
+//       printer.cut();
+//       await printer.execute();
+//       return res.json({ success: true, mode: "text" });
+//     }
+
+//     return res.status(400).json({
+//       error: "Unsupported print payload",
+//     });
+//   } catch (err) {
+//     console.error("PRINT ERROR:", err);
+//     res.status(500).json({ error: err.message });
+//   }
+// });
+
+
+
+
+
+
+// NEW TIME OUT
+
+
+app.post("/print", authRequired, (req, res) => {
+  const start = Date.now();
+
+  console.log("\n========== /print START ==========");
+
   try {
     const printerId = req.headers["x-printer-id"];
+    console.log("Printer ID:", printerId);
+
     if (!printerId) {
+      console.log("❌ Missing x-printer-id");
       return res.status(400).json({ error: "x-printer-id missing" });
     }
 
     const printerCfg = loadPrinters().find(
-      (p) =>
+      p =>
         p.enabled &&
         (p.id.toLowerCase() === printerId.toLowerCase() ||
           p.name?.toLowerCase() === printerId.toLowerCase())
     );
 
     if (!printerCfg) {
+      console.log("❌ Printer not found");
       return res.status(404).json({ error: "Printer not found or disabled" });
     }
 
+    // ✅ RESPOND IMMEDIATELY
+    res.json({
+      success: true,
+      message: "Print accepted",
+      printer: printerCfg.id
+    });
+
+    console.log("✅ HTTP response sent in", Date.now() - start, "ms");
+
+    // 🔥 PRINT IN BACKGROUND
+    processPrintJob(printerCfg, req.body);
+
+  } catch (err) {
+    console.error("❌ API ERROR:", err);
+  }
+});
+
+
+async function processPrintJob(printerCfg, body) {
+  console.log("\n--- PRINT JOB START ---");
+
+  try {
     const printer = new ThermalPrinter({
       type: PrinterTypes.EPSON,
       interface: `tcp://${printerCfg.connection.ip}:${printerCfg.connection.port}`,
-      timeout: 15000,
+      options: { timeout: 15000 }
     });
 
-    if (!(await printer.isPrinterConnected())) {
-      return res.status(500).json({ error: "Printer offline" });
-    }
+    const connected = await printer.isPrinterConnected();
+    console.log("Printer connected:", connected);
 
-    const body = req.body || {};
+    if (!connected) {
+      console.log("❌ Printer offline");
+      return;
+    }
 
     /* ========= AUTO DETECT ========= */
 
-    // 1️⃣ INVOICE JSON
     if (body.isInvoiceData?.isInvoice) {
+      console.log("Mode: INVOICE");
       await printInvoice(printer, body);
-      return res.json({ success: true, mode: "invoice" });
-    }
-
-    // 2️⃣ TEXT
-    if (body.text) {
+    } 
+    else if (body.text) {
+      console.log("Mode: TEXT");
       printer.println(body.text);
       printer.cut();
       await printer.execute();
-      return res.json({ success: true, mode: "text" });
+    } 
+    else {
+      console.log("❌ Unsupported payload");
+      return;
     }
 
-    return res.status(400).json({
-      error: "Unsupported print payload",
-    });
+    console.log("✅ PRINT SUCCESS");
+
   } catch (err) {
-    console.error("PRINT ERROR:", err);
-    res.status(500).json({ error: err.message });
+    console.error("❌ PRINT FAILED:", err.message);
   }
-});
+
+  console.log("--- PRINT JOB END ---\n");
+}
+
+
+
 
 /* ===============================
    INVOICE PRINTER
@@ -343,7 +442,7 @@ async function printInvoice(printer, data) {
       cols: 3,
       bold: true,
     },
-    { text: "Rate", align: "RIGHT", cols: 9, bold: true },
+    { text: "Rate",    align: "RIGHT", cols: 9, bold: true },
     { text: "Tax-Amt", align: "RIGHT", cols: 9, bold: true },
     { text: "Net-Amt", align: "RIGHT", cols: 9, bold: true },
   ]);
@@ -407,7 +506,6 @@ async function printInvoice(printer, data) {
     qr_data
   ) {
     printer.alignCenter();
-    printer.println("Scan for e-Invoice");
 
     printer.printQR(qr_data, {
       cellSize: 6,
