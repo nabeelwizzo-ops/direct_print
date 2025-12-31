@@ -12,6 +12,7 @@ const { ThermalPrinter, PrinterTypes } = require("node-thermal-printer");
 //
 const axios = require("axios");
 const sharp = require("sharp");
+const { createCanvas, loadImage } = require("canvas");
 //
 
 const app = express();
@@ -531,6 +532,8 @@ async function downloadImage(url) {
   return filePath;
 }
 
+//================ARABIC=======================
+
 async function printArabicAsImage(printer, text) {
   const svg = `
 <svg width="576" height="100" xmlns="http://www.w3.org/2000/svg">
@@ -546,13 +549,23 @@ async function printArabicAsImage(printer, text) {
 </svg>
 `;
 
-  const image = await sharp(Buffer.from(svg)).png().toBuffer();
+  const img = await loadImage("data:image/svg+xml;base64," + Buffer.from(svg).toString("base64"));
+  const canvas = createCanvas(576, 100);
+  const ctx = canvas.getContext("2d");
+
+  ctx.drawImage(img, 0, 0);
+  const buffer = canvas.toBuffer("image/png");
 
   printer.alignCenter();
-  printer.printImageBuffer(image);
+  printer.printImageBuffer(buffer);
   printer.cut();
   await printer.execute();
 }
+
+
+//=======================================
+
+
 
 /* ===============================
    START SERVER
