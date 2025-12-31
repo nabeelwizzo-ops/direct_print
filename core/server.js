@@ -12,7 +12,6 @@ const { ThermalPrinter, PrinterTypes } = require("node-thermal-printer");
 //
 const axios = require("axios");
 const sharp = require("sharp");
-const { createCanvas, loadImage } = require("canvas");
 //
 
 const app = express();
@@ -532,39 +531,32 @@ async function downloadImage(url) {
   return filePath;
 }
 
-//================ARABIC=======================
-
+/*********************************
+ * ARABIC IMAGE PRINT (WASM)
+ *********************************/
 async function printArabicAsImage(printer, text) {
   const svg = `
-<svg width="576" height="100" xmlns="http://www.w3.org/2000/svg">
+<svg width="576" height="120" xmlns="http://www.w3.org/2000/svg">
   <style>
     text {
       font-size: 28px;
-      font-family: "Noto Naskh Arabic", Arial;
+      font-family: Arial;
       direction: rtl;
       unicode-bidi: bidi-override;
+      fill: black;
     }
   </style>
-  <text x="560" y="60" text-anchor="end">${text}</text>
+  <text x="560" y="70" text-anchor="end">${text}</text>
 </svg>
 `;
 
-  const img = await loadImage("data:image/svg+xml;base64," + Buffer.from(svg).toString("base64"));
-  const canvas = createCanvas(576, 100);
-  const ctx = canvas.getContext("2d");
-
-  ctx.drawImage(img, 0, 0);
-  const buffer = canvas.toBuffer("image/png");
+  const img = await sharp(Buffer.from(svg)).png().toBuffer();
 
   printer.alignCenter();
-  printer.printImageBuffer(buffer);
+  printer.printImageBuffer(img);
   printer.cut();
   await printer.execute();
 }
-
-
-//=======================================
-
 
 
 /* ===============================
