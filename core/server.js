@@ -411,10 +411,10 @@ async function printInvoice(printer, data) {
   if (master.BillPartyName) {
     printer.println("Party   : " + master.BillPartyName);
   }
-  if (!master.BillPartyName === "Cash" || !master.BillPartyName === "3") {
-    printer.println("Add: " + masterData.Address1);
-    printer.println("Contact: " + masterData.Ph);
-    printer.println("Tax-No: " + masterData.TinNo);
+  if (master.BillPartyName !== "Cash" || master.BillPartyName !== "3") {
+    printer.println("Add: " + master.Address1,"");
+    printer.println("Contact: " + master.Ph,"");
+    printer.println("Tax-No: " + master.TinNo,"");
   }
 
   printer.drawLine();
