@@ -209,13 +209,7 @@ app.get("/api/printers", async (req, res) => {
 //   }
 // });
 
-
-
-
-
-
 // NEW TIME OUT
-
 
 app.post("/print", authRequired, (req, res) => {
   const start = Date.now();
@@ -232,7 +226,7 @@ app.post("/print", authRequired, (req, res) => {
     }
 
     const printerCfg = loadPrinters().find(
-      p =>
+      (p) =>
         p.enabled &&
         (p.id.toLowerCase() === printerId.toLowerCase() ||
           p.name?.toLowerCase() === printerId.toLowerCase())
@@ -247,19 +241,17 @@ app.post("/print", authRequired, (req, res) => {
     res.json({
       success: true,
       message: "Print accepted",
-      printer: printerCfg.id
+      printer: printerCfg.id,
     });
 
     console.log("✅ HTTP response sent in", Date.now() - start, "ms");
 
     // 🔥 PRINT IN BACKGROUND
     processPrintJob(printerCfg, req.body);
-
   } catch (err) {
     console.error("❌ API ERROR:", err);
   }
 });
-
 
 async function processPrintJob(printerCfg, body) {
   console.log("\n--- PRINT JOB START ---");
@@ -268,7 +260,7 @@ async function processPrintJob(printerCfg, body) {
     const printer = new ThermalPrinter({
       type: PrinterTypes.EPSON,
       interface: `tcp://${printerCfg.connection.ip}:${printerCfg.connection.port}`,
-      options: { timeout: 15000 }
+      options: { timeout: 15000 },
     });
 
     const connected = await printer.isPrinterConnected();
@@ -284,29 +276,23 @@ async function processPrintJob(printerCfg, body) {
     if (body.isInvoiceData?.isInvoice) {
       console.log("Mode: INVOICE");
       await printInvoice(printer, body);
-    } 
-    else if (body.text) {
+    } else if (body.text) {
       console.log("Mode: TEXT");
       printer.println(body.text);
       printer.cut();
       await printer.execute();
-    } 
-    else {
+    } else {
       console.log("❌ Unsupported payload");
       return;
     }
 
     console.log("✅ PRINT SUCCESS");
-
   } catch (err) {
     console.error("❌ PRINT FAILED:", err.message);
   }
 
   console.log("--- PRINT JOB END ---\n");
 }
-
-
-
 
 /* ===============================
    INVOICE PRINTER
@@ -425,6 +411,11 @@ async function printInvoice(printer, data) {
   if (master.BillPartyName) {
     printer.println("Party   : " + master.BillPartyName);
   }
+  if (!master.BillPartyName === "Cash" || !master.BillPartyName === "3") {
+    printer.println("Add: " + masterData.Address1, "");
+    printer.println("Contact: " + masterData.Ph, "");
+    printer.println("Tax-No: " + masterData.TinNo, "");
+  }
 
   printer.drawLine();
 
@@ -442,23 +433,13 @@ async function printInvoice(printer, data) {
       cols: 3,
       bold: true,
     },
-    { text: "Rate",    align: "RIGHT", cols: 9, bold: true },
+    { text: "Rate", align: "RIGHT", cols: 9, bold: true },
     { text: "Tax-Amt", align: "RIGHT", cols: 9, bold: true },
     { text: "Net-Amt", align: "RIGHT", cols: 9, bold: true },
   ]);
   printer.drawLine();
 
   table.forEach((it, i) => {
-    // printer.tableCustom([
-    //   { text: String(i + 1), cols: 3 },
-    //   { text: String(it.ItemNameTextField || "").substring(0, 18), cols: 18 },
-    //   { text: String(it.qty || 0), cols: 4, align: "RIGHT" },
-    //   {
-    //     text: Number(it.total || 0).toFixed(2),
-    //     cols: 7,
-    //     align: "RIGHT",
-    //   },
-    // ]);
 
     printer.tableCustom([
       { text: i + 1, cols: 3, align: "LEFT" },
@@ -485,7 +466,7 @@ async function printInvoice(printer, data) {
   printer.leftRight("Sub Total", fmt(master.BillTotalField, 2));
   printer.leftRight("Discount", fmt(master.BillDiscAmtField, 2));
   printer.leftRight("Tax", fmt(master.TItTaxAmt, 2));
-  printer.leftRight("Other Chrg", fmt(master.BillPackageField, 2));
+  // printer.leftRight("Other Chrg", fmt(master.BillPackageField, 2));
   printer.leftRight("Net Total", fmt(master.BillNetTotalField, 2));
 
   printer.drawLine();
@@ -500,11 +481,7 @@ async function printInvoice(printer, data) {
   /* =========================
        7. QR CODE (ZATCA / EINVOICE)
     ========================= */
-  if (
-    typ === "THERMAL_3INCH_DIRECT_VAT" &&
-    isInvoiceData?.isInvoice &&
-    qr_data
-  ) {
+  if (typ === "Direct Print 3Inch" && isInvoiceData?.isInvoice && qr_data) {
     printer.alignCenter();
 
     printer.printQR(qr_data, {
