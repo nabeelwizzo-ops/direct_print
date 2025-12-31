@@ -11,6 +11,7 @@ const net = require("net");
 const { ThermalPrinter, PrinterTypes } = require("node-thermal-printer");
 //
 const axios = require("axios");
+const sharp = require("sharp");
 //
 
 const app = express();
@@ -523,6 +524,34 @@ async function downloadImage(url) {
 
   return filePath;
 }
+
+
+
+async function printArabicAsImage(printer, text) {
+  const svg = `
+  <svg width="576" height="100" xmlns="http://www.w3.org/2000/svg">
+    <style>
+      text {
+        font-size: 28px;
+        font-family: "Noto Naskh Arabic", "Arial";
+        direction: rtl;
+        unicode-bidi: bidi-override;
+      }
+    </style>
+    <text x="560" y="50" text-anchor="end">${text}</text>
+  </svg>
+  `;
+
+  const image = await sharp(Buffer.from(svg))
+    .png()
+    .toBuffer();
+
+  printer.alignCenter();
+  printer.printImageBuffer(image);
+  printer.cut();
+  await printer.execute();
+}
+
 
 /* ===============================
    START SERVER
