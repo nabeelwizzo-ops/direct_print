@@ -412,9 +412,9 @@ async function printInvoice(printer, data) {
     printer.println("Party   : " + master.BillPartyName);
   }
   if (master.BillPartyName !== "Cash" || master.BillPartyName !== "3") {
-    printer.println("Add: " + master.Address1,"");
-    printer.println("Contact: " + master.Ph,"");
-    printer.println("Tax-No: " + master.TinNo,"");
+    printer.println("Add: " + master.Address1, "");
+    printer.println("Contact: " + master.Ph, "");
+    printer.println("Tax-No: " + master.TinNo, "");
   }
 
   printer.drawLine();
@@ -440,7 +440,6 @@ async function printInvoice(printer, data) {
   printer.drawLine();
 
   table.forEach((it, i) => {
-
     printer.tableCustom([
       { text: i + 1, cols: 3, align: "LEFT" },
       {
