@@ -1,0 +1,37 @@
+$bodyObj = @{
+  text = "INVOICE
+مؤسسة وسم تهامة للتجارة
+TOTAL: 125.00"
+}
+
+$bodyJson = $bodyObj | ConvertTo-Json -Depth 10
+
+Invoke-WebRequest `
+  -Uri "http://localhost:3000/print" `
+  -Method POST `
+  -Headers @{
+    "Content-Type" = "application/json"
+    "x-printer-id" = "Cashier1"
+    "x-client-id"  = "admin"
+    "x-print-key"  = "999999"
+  } `
+  -Body ([System.Text.Encoding]::UTF8.GetBytes($bodyJson))
+
+=================================================================
+
+$bodyObj = @{
+  text = "INVOICE"
+}
+
+$bodyJson = $bodyObj | ConvertTo-Json -Depth 10
+
+Invoke-WebRequest `
+  -Uri "http://localhost:3000/print" `
+  -Method POST `
+  -Headers @{
+    "Content-Type" = "application/json"
+    "x-printer-id" = "Cashier1"
+    "x-client-id"  = "admin"
+    "x-print-key"  = "999999"
+  } `
+  -Body ([System.Text.Encoding]::UTF8.GetBytes($bodyJson))

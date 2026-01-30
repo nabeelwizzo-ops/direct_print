@@ -12,6 +12,7 @@ const { ThermalPrinter, PrinterTypes } = require("node-thermal-printer");
 //
 const axios = require("axios");
 const sharp = require("sharp");
+const { log } = require("console");
 //
 
 const app = express();
@@ -106,7 +107,7 @@ function authRequired(req, res, next) {
   const clients = loadClients(); // ✅ now ALWAYS array
 
   const ok = clients.find(
-    (c) => c.id === id && c.pin === key && c.enabled === true
+    (c) => c.id === id && c.pin === key && c.enabled === true,
   );
 
   if (!ok) {
@@ -145,7 +146,7 @@ app.get("/api/printers", async (req, res) => {
     printers.map(async (p) => ({
       ...p,
       online: await isPrinterOnline(p.connection.ip, p.connection.port),
-    }))
+    })),
   );
 
   res.json({ printers: result });
@@ -230,7 +231,7 @@ app.post("/print", authRequired, (req, res) => {
       (p) =>
         p.enabled &&
         (p.id.toLowerCase() === printerId.toLowerCase() ||
-          p.name?.toLowerCase() === printerId.toLowerCase())
+          p.name?.toLowerCase() === printerId.toLowerCase()),
     );
 
     if (!printerCfg) {
@@ -249,6 +250,8 @@ app.post("/print", authRequired, (req, res) => {
 
     // 🔥 PRINT IN BACKGROUND
     processPrintJob(printerCfg, req.body);
+
+    // processPrintJob2(printerCfg, req.body);
   } catch (err) {
     console.error("❌ API ERROR:", err);
   }
@@ -277,6 +280,23 @@ async function processPrintJob(printerCfg, body) {
     if (body.isInvoiceData?.isInvoice) {
       console.log("Mode: INVOICE");
       await printInvoice(printer, body);
+    } else if (body.isInvoiceData?.isALLKot && body.isInvoiceData?.isKot) {
+      console.log("Mode: KOT");
+      await kot_print(printer, body);
+      console.log("Mode: ALL KOT");
+      await all_kot_print(printer, body);
+
+      // Execute once after both print functions
+      await printer.execute();
+      console.log("EXCUTED ALL KOT + KOT");
+    } else if (body.isInvoiceData?.isKot) {
+      // console.log("Mode:  KOT2 ");
+      // await kot_print(printer, body);
+
+      console.log("Mode: SMART KOT ROUTING");
+      await routeKotToPrinters(body);
+      return;
+
     } else if (body.text) {
       // ✅ Arabic → IMAGE MODE
       if (containsArabic(body.text)) {
@@ -285,6 +305,7 @@ async function processPrintJob(printerCfg, body) {
       }
 
       console.log("Mode: TEXT");
+      //printer.setCharacterSet("CP864");
       printer.println(body.text);
       printer.cut();
       await printer.execute();
@@ -383,6 +404,9 @@ async function printInvoice(printer, data) {
   const typ = data?.typ ?? "";
   const qr_data = data?.qrData ?? "";
   const logo = data?.logo ?? "";
+  const bill_form = data?.bill_form ?? "SALES B2B";
+  const lang_mode = data?.lang_mode ?? "ENGLISH";
+  const tax_mode = data?.bill_form ?? "GST";
 
   printer.alignCenter();
 
@@ -405,25 +429,46 @@ async function printInvoice(printer, data) {
 
   if (comp.Place) printer.println(comp.Place);
   if (comp.Ph) printer.println("Ph: " + comp.Ph);
-  if (comp.gst) printer.println("GSTIN: " + comp.gst);
+
+  printer.bold(true);
+  if (bill_form === "SALES B2B") {
+    printer.println("TAX INVOICE");
+  } else if (bill_form === "SALES B2C") {
+    printer.println("SIMPLIFIED TAX INVOICE");
+  } else if (bill_form === "SALES RETURN") {
+    printer.println("CREDIT NOTE");
+  } else {
+    printer.println("TAX INVOICE");
+  }
+  printer.bold(false);
+
+  if (tax_mode === "GST") {
+    if (comp.gst) printer.println("GST IN: " + comp.gst);
+  } else {
+    if (comp.gst) printer.println("VAT IN: " + comp.gst);
+  }
 
   printer.drawLine();
 
   printer.alignLeft();
   printer.println("Bill No : " + (master.BillNo ?? ""));
   printer.println(
-    "Date    : " + (master.BillDate || "") + " " + (master.BillTime || "")
+    "Date    : " + (master.BillDate || "") + " " + (master.BillTime || ""),
   );
 
   if (master.BillPartyName) {
     printer.println("Party   : " + master.BillPartyName);
   }
-  if (master.BillPartyName !== "Cash" || master.BillPartyName !== "3") {
+  if (master.BillPartyName !== "Cash") {
     printer.println("Add: " + master.Address1, "");
     printer.println("Contact: " + master.Ph, "");
     printer.println("Tax-No: " + master.TinNo, "");
   }
-
+  if (master.BillPartyName !== "3") {
+    printer.println("Add: " + master.Address1, "");
+    printer.println("Contact: " + master.Ph, "");
+    printer.println("Tax-No: " + master.TinNo, "");
+  }
   printer.drawLine();
 
   printer.tableCustom([
@@ -472,7 +517,6 @@ async function printInvoice(printer, data) {
   printer.leftRight("Sub Total", fmt(master.BillTotalField, 2));
   printer.leftRight("Discount", fmt(master.BillDiscAmtField, 2));
   printer.leftRight("Tax", fmt(master.TItTaxAmt, 2));
-  // printer.leftRight("Other Chrg", fmt(master.BillPackageField, 2));
   printer.leftRight("Net Total", fmt(master.BillNetTotalField, 2));
 
   printer.drawLine();
@@ -490,10 +534,12 @@ async function printInvoice(printer, data) {
   if (typ === "Direct Print 3Inch" && isInvoiceData?.isInvoice && qr_data) {
     printer.alignCenter();
 
-    printer.printQR(qr_data, {
-      cellSize: 6,
-      correction: "M",
-    });
+    if (qr_data) {
+      printer.printQR(qr_data, {
+        cellSize: 6,
+        correction: "M",
+      });
+    }
 
     printer.newLine();
   }
@@ -510,6 +556,222 @@ async function printInvoice(printer, data) {
   printer.beep();
 
   await printer.execute();
+}
+
+// ALL KOT PRINT
+
+async function all_kot_print(printer, data) {
+  const { company = [], master = {}, kotTableData = [], logo = "" } = data;
+
+  /* =========================
+     LOGO (optional)
+  ========================= */
+  printer.alignCenter();
+
+  if (logo) {
+    try {
+      const logoPath = await downloadImage(logo);
+      await printer.printImage(logoPath);
+      printer.newLine();
+    } catch (e) {
+      console.log("Logo print error:", e.message);
+    }
+  }
+
+  /* =========================
+     TITLE
+  ========================= */
+  printer.setTextDoubleHeight();
+  printer.setTextDoubleWidth();
+  printer.bold(true);
+  printer.println("ALL KOT");
+  printer.bold(false);
+  printer.setTextNormal();
+
+  printer.drawLine();
+
+  /* =========================
+     KOT NO + DATE (same line)
+  ========================= */
+  printer.tableCustom([
+    {
+      text: "KOT NO: " + (master.OrderNo ?? "0"),
+      align: "LEFT",
+      cols: 24,
+    },
+    {
+      text: "Date: " + (master.BillDate || "") + " " + (master.BillTime || ""),
+      align: "RIGHT",
+      cols: 24,
+    },
+  ]);
+
+  /* =========================
+     STAFF & TABLE
+  ========================= */
+  printer.alignLeft();
+  printer.println("STAFF: " + (master.Lorry || "NIL"));
+  printer.println("TABLE NO: " + (master.table || "0"));
+
+  printer.drawLine();
+
+  /* =========================
+     HEADER
+     48 columns split: 3 | 37 | 8
+  ========================= */
+  printer.bold(true);
+  printer.tableCustom([
+    { text: "#", align: "LEFT", cols: 3 },
+    { text: "Item Name", align: "LEFT", cols: 37 },
+    { text: "Qty", align: "CENTER", cols: 8 },
+  ]);
+  printer.bold(false);
+
+  printer.drawLine();
+
+  /* =========================
+     ITEMS (single row per item)
+  ========================= */
+  kotTableData.forEach((it, i) => {
+    const nameLines = wrapText(String(it.itemname || ""), 37);
+
+    nameLines.forEach((line, idx) => {
+      printer.tableCustom([
+        {
+          text: idx === 0 ? String(i + 1) : "",
+          align: "LEFT",
+          cols: 3,
+        },
+        {
+          text: line,
+          align: "LEFT",
+          cols: 37,
+        },
+        {
+          text: idx === 0 ? String(it.qty ?? 0) : "",
+          align: "CENTER",
+          cols: 8,
+        },
+      ]);
+    });
+  });
+
+  printer.drawLine();
+  printer.newLine();
+
+  /* =========================
+     CUT + BEEP
+  ========================= */
+  printer.cut();
+  printer.beep();
+  printer.beep();
+
+  // await printer.execute();
+}
+
+async function kot_print(printer, data) {
+  const { company = [], master = {}, kotTableData = [], logo = "" } = data;
+
+  /* =========================
+     LOGO (optional)
+  ========================= */
+  printer.alignCenter();
+
+  if (logo) {
+    try {
+      const logoPath = await downloadImage(logo);
+      await printer.printImage(logoPath);
+      printer.newLine();
+    } catch (e) {
+      console.log("Logo print error:", e.message);
+    }
+  }
+
+  /* =========================
+     TITLE
+  ========================= */
+  printer.setTextDoubleHeight();
+  printer.setTextDoubleWidth();
+  printer.bold(true);
+  printer.println(" KOT ");
+  printer.bold(false);
+  printer.setTextNormal();
+
+  printer.drawLine();
+
+  /* =========================
+     KOT NO + DATE (same line)
+  ========================= */
+  printer.tableCustom([
+    {
+      text: "KOT NO: " + (master.OrderNo ?? "0"),
+      align: "LEFT",
+      cols: 24,
+    },
+    {
+      text: "Date: " + (master.BillDate || "") + " " + (master.BillTime || ""),
+      align: "RIGHT",
+      cols: 24,
+    },
+  ]);
+
+  /* =========================
+     STAFF & TABLE
+  ========================= */
+  printer.alignLeft();
+  printer.println("STAFF: " + (master.Lorry || "NIL"));
+  printer.println("TABLE NO: " + (master.table || "0"));
+
+  printer.drawLine();
+
+  /* =========================
+     HEADER
+     48 columns split: 3 | 37 | 8
+  ========================= */
+  printer.bold(true);
+  printer.tableCustom([
+    { text: "#", align: "LEFT", cols: 3 },
+    { text: "Item Name", align: "LEFT", cols: 37 },
+    { text: "Qty", align: "CENTER", cols: 8 },
+  ]);
+  printer.bold(false);
+
+  printer.drawLine();
+
+  /* =========================
+     ITEMS (single row per item)
+  ========================= */
+  kotTableData.forEach((it, i) => {
+    printer.tableCustom([
+      {
+        text: String(i + 1),
+        align: "LEFT",
+        cols: 3,
+      },
+      {
+        text: String(it.itemname || "").substring(0, 37),
+        align: "LEFT",
+        cols: 37,
+      },
+      {
+        text: String(it.qty ?? 0),
+        align: "CENTER",
+        cols: 8,
+      },
+    ]);
+  });
+
+  printer.drawLine();
+  printer.newLine();
+
+  /* =========================
+     CUT + BEEP
+  ========================= */
+  printer.cut();
+  printer.beep();
+  printer.beep();
+
+  // await printer.execute();
 }
 
 async function downloadImage(url) {
@@ -557,6 +819,320 @@ async function printArabicAsImage(printer, text) {
   printer.cut();
   await printer.execute();
 }
+
+function containsArabic(text = "") {
+  return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(text);
+}
+
+//New
+
+async function processPrintJob2(printerCfg, body) {
+  console.log("\n--- PRINT JOB START ---");
+
+  try {
+    const printer = new ThermalPrinter({
+      type: PrinterTypes.EPSON,
+      interface: `tcp://${printerCfg.connection.ip}:${printerCfg.connection.port}`,
+      options: { timeout: 15000 },
+    });
+
+    // ✅ SET ENCODING (CRITICAL)
+    printer.removeSpecialCharacters(false);
+
+    const connected = await printer.isPrinterConnected();
+    console.log("Printer connected:", connected);
+
+    if (!connected) {
+      console.log("❌ Printer offline");
+      return;
+    }
+
+    /* ========= AUTO DETECT ========= */
+
+    if (body.isInvoiceData?.isInvoice) {
+      console.log("Mode: INVOICE");
+      await printInvoice(printer, body);
+    } else if (body.text) {
+      // Arabic → Image mode
+      if (containsArabic(body.text)) {
+        await printArabicAsImage(printer, body.text);
+        console.log("Mode: ARABIC IMAGE");
+        return;
+      }
+
+      console.log("Mode: TEXT");
+      printer.println(body.text);
+      printer.setCharacterSet("CP864");
+      printer.println("السلام عليكم");
+      printer.cut();
+      await printer.execute();
+    } else {
+      console.log("❌ Unsupported payload");
+      return;
+    }
+
+    console.log("✅ PRINT SUCCESS");
+  } catch (err) {
+    console.error("❌ PRINT FAILED:", err.message);
+  }
+
+  console.log("--- PRINT JOB END ---\n");
+}
+
+// --------------- TEST MULTPLE PRINT CASE---------------
+
+app.post("/testprint", authRequired, (req, res) => {
+  const start = Date.now();
+
+  console.log("\n========== /testprint START ==========");
+
+  try {
+    const printerHeader = req.headers["x-printer-id"];
+
+    if (!printerHeader) {
+      return res.status(400).json({ error: "x-printer-id missing" });
+    }
+
+    // ✅ SUPPORT MULTIPLE PRINTERS
+    const printerIds = printerHeader
+      .split(",")
+      .map((p) => p.trim().toLowerCase());
+
+    const printers = loadPrinters().filter(
+      (p) =>
+        p.enabled &&
+        (printerIds.includes(p.id.toLowerCase()) ||
+          printerIds.includes(p.name?.toLowerCase())),
+    );
+
+    if (!printers.length) {
+      return res.status(404).json({ error: "No matching printers found" });
+    }
+
+    // ✅ RESPOND IMMEDIATELY
+    res.json({
+      success: true,
+      message: "Print accepted",
+      printers: printers.map((p) => p.name),
+    });
+
+    console.log("✅ HTTP response sent in", Date.now() - start, "ms");
+
+    // 🔥 PRINT IN BACKGROUND
+    printers.forEach((printerCfg) => {
+      test_processPrintJob(printerCfg, req.body);
+    });
+  } catch (err) {
+    console.error("❌ API ERROR:", err);
+  }
+});
+
+async function test_processPrintJob(printerCfg, body) {
+  console.log(`\n--- PRINT JOB START (${printerCfg.name}) ---`);
+  console.log(`--- ROLE: ${printerCfg.role} ---`);
+
+  try {
+    const printer = new ThermalPrinter({
+      type: PrinterTypes.EPSON,
+      interface: `tcp://${printerCfg.connection.ip}:${printerCfg.connection.port}`,
+      options: { timeout: 15000 },
+    });
+
+    const connected = await printer.isPrinterConnected();
+    console.log(`[${printerCfg.name}] Connected:`, connected);
+
+    if (!connected) {
+      console.log(`[${printerCfg.name}] ❌ Printer offline`);
+      return;
+    }
+
+    // 🔀 ROLE BASED TEXT SELECTION
+    let textToPrint = "";
+
+    if (printerCfg.role === "CASHIER") {
+      textToPrint = body.invoiceText;
+    } else if (printerCfg.role === "KITCHEN") {
+      textToPrint = body.kotText;
+    }
+
+    if (!textToPrint || typeof textToPrint !== "string") {
+      console.log(
+        `[${printerCfg.name}] ❌ No text for role ${printerCfg.role}`,
+      );
+      return;
+    }
+
+    printer.println(textToPrint);
+
+    if (printerCfg.printSettings?.cut) {
+      printer.cut();
+    }
+
+    await printer.execute();
+
+    console.log(`[${printerCfg.name}] ✅ PRINT SUCCESS`);
+  } catch (err) {
+    console.error(`[${printerCfg.name}] ❌ PRINT FAILED:`, err.message);
+  }
+
+  console.log(`--- PRINT JOB END (${printerCfg.name}) ---\n`);
+}
+
+// WRAP TEXT-------
+
+function wrapText(text, width) {
+  const words = text.split(" ");
+  const lines = [];
+  let line = "";
+
+  words.forEach((word) => {
+    if ((line + word).length > width) {
+      lines.push(line.trim());
+      line = word + " ";
+    } else {
+      line += word + " ";
+    }
+  });
+
+  if (line.trim()) lines.push(line.trim());
+  return lines;
+}
+
+// PRINTER WISE PRINT  //
+
+// async function routeKotToPrinters(body) {
+//   console.log("🔀 Routing KOT items by printer...");
+
+//   const printerWiseItems = {};
+
+//   // Group items by printer IP
+//   body.kotTableData.forEach((item) => {
+//     const ip = item.printer;
+
+//     if (!printerWiseItems[ip]) {
+//       printerWiseItems[ip] = [];
+//     }
+
+//     printerWiseItems[ip].push(item);
+//   });
+
+//   // Send print job to each printer
+//   for (const ip in printerWiseItems) {
+//     const printerCfg = findPrinterByIp(ip);
+
+//     if (!printerCfg) {
+//       console.log("❌ No KITCHEN printer configured for IP:", ip);
+//       continue;
+//     }
+
+//     console.log(`🖨️ Printing to ${printerCfg.name} (${ip})`);
+
+//     const printer = new ThermalPrinter({
+//       type: PrinterTypes.EPSON,
+//       interface: `tcp://${printerCfg.connection.ip}:${printerCfg.connection.port}`,
+//       options: { timeout: 15000 },
+//     });
+
+//     const connected = await printer.isPrinterConnected();
+
+//     if (!connected) {
+//       console.log("❌ Printer offline:", ip);
+//       continue;
+//     }
+
+//     const newBody = {
+//       ...body,
+//       kotTableData: printerWiseItems[ip], // only items for this printer
+//     };
+
+//     await kot_print(printer, newBody);
+//     await printer.execute();
+//   }
+// }
+
+
+async function routeKotToPrinters(body) {
+  console.log("🔀 Routing KOT by product printer...");
+
+  body = attachPrinterToKotItems(body);
+
+  const printerWiseItems = {};
+
+  // Group by printer
+  body.kotTableData.forEach(item => {
+    const ip = item.printer;
+
+    if (!printerWiseItems[ip]) {
+      printerWiseItems[ip] = [];
+    }
+
+    printerWiseItems[ip].push(item);
+  });
+
+  // Print per printer
+  for (const ip in printerWiseItems) {
+    const printerCfg = findPrinterByIp(ip);
+
+    if (!printerCfg) {
+      console.log("❌ No KITCHEN printer for IP:", ip);
+      continue;
+    }
+
+    console.log(`🖨️ Printing ${printerWiseItems[ip].length} items to ${printerCfg.name}`);
+
+    const printer = new ThermalPrinter({
+      type: PrinterTypes.EPSON,
+      interface: `tcp://${printerCfg.connection.ip}:${printerCfg.connection.port}`,
+      options: { timeout: 15000 },
+    });
+
+    const connected = await printer.isPrinterConnected();
+    if (!connected) {
+      console.log("❌ Printer offline:", ip);
+      continue;
+    }
+
+    const newBody = {
+      ...body,
+      kotTableData: printerWiseItems[ip],
+    };
+
+    await kot_print(printer, newBody);
+    await printer.execute();
+  }
+}
+
+
+
+function findPrinterByIp(ip) {
+  const printers = loadPrinters();
+
+  return printers.find(
+    (p) =>
+      p.enabled &&
+      p.role === "KITCHEN" &&
+      p.connection.ip === ip
+  );
+}
+
+
+function attachPrinterToKotItems(body) {
+  const tableMap = {};
+
+  // Map item name -> printer_ip
+  body.table.forEach(t => {
+    tableMap[t.ItemNameTextField.trim()] = t.printer_ip;
+  });
+
+  // Inject printer into kot items
+  body.kotTableData.forEach(k => {
+    const name = k.itemname.trim();
+    k.printer = tableMap[name];   // very important
+  });
+
+  return body;
+}
+
 
 
 /* ===============================
