@@ -299,6 +299,7 @@ async function processPrintJob(printerCfg, body) {
 
     } else if (body.text) {
       // ✅ Arabic → IMAGE MODE
+
       if (containsArabic(body.text)) {
         await printArabicAsImage(printer, body.text);
         return res.json({ success: true, mode: "arabic-image" });
@@ -796,33 +797,33 @@ async function downloadImage(url) {
 /*********************************
  * ARABIC IMAGE PRINT (WASM)
  *********************************/
-async function printArabicAsImage(printer, text) {
-  const svg = `
-<svg width="576" height="120" xmlns="http://www.w3.org/2000/svg">
-  <style>
-    text {
-      font-size: 28px;
-      font-family: Arial;
-      direction: rtl;
-      unicode-bidi: bidi-override;
-      fill: black;
-    }
-  </style>
-  <text x="560" y="70" text-anchor="end">${text}</text>
-</svg>
-`;
+// async function printArabicAsImage(printer, text) {
+//   const svg = `
+// <svg width="576" height="120" xmlns="http://www.w3.org/2000/svg">
+//   <style>
+//     text {
+//       font-size: 28px;
+//       font-family: Arial;
+//       direction: rtl;
+//       unicode-bidi: bidi-override;
+//       fill: black;
+//     }
+//   </style>
+//   <text x="560" y="70" text-anchor="end">${text}</text>
+// </svg>
+// `;
 
-  const img = await sharp(Buffer.from(svg)).png().toBuffer();
+//   const img = await sharp(Buffer.from(svg)).png().toBuffer();
 
-  printer.alignCenter();
-  printer.printImageBuffer(img);
-  printer.cut();
-  await printer.execute();
-}
+//   printer.alignCenter();
+//   printer.printImageBuffer(img);
+//   printer.cut();
+//   await printer.execute();
+// }
 
-function containsArabic(text = "") {
-  return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(text);
-}
+// function containsArabic(text = "") {
+//   return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(text);
+// }
 
 //New
 
@@ -854,11 +855,12 @@ async function processPrintJob2(printerCfg, body) {
       await printInvoice(printer, body);
     } else if (body.text) {
       // Arabic → Image mode
-      if (containsArabic(body.text)) {
-        await printArabicAsImage(printer, body.text);
-        console.log("Mode: ARABIC IMAGE");
-        return;
-      }
+      
+      // if (containsArabic(body.text)) {
+      //   await printArabicAsImage(printer, body.text);
+      //   console.log("Mode: ARABIC IMAGE");
+      //   return;
+      // }
 
       console.log("Mode: TEXT");
       printer.println(body.text);
