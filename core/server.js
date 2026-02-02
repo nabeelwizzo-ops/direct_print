@@ -11,7 +11,7 @@ const net = require("net");
 const { ThermalPrinter, PrinterTypes } = require("node-thermal-printer");
 //
 const axios = require("axios");
-const sharp = require("sharp");
+// const sharp = require("sharp");
 const { log } = require("console");
 //
 
@@ -300,10 +300,10 @@ async function processPrintJob(printerCfg, body) {
     } else if (body.text) {
       // ✅ Arabic → IMAGE MODE
 
-      if (containsArabic(body.text)) {
-        await printArabicAsImage(printer, body.text);
-        return res.json({ success: true, mode: "arabic-image" });
-      }
+      // if (containsArabic(body.text)) {
+      //   await printArabicAsImage(printer, body.text);
+      //   return res.json({ success: true, mode: "arabic-image" });
+      // }
 
       console.log("Mode: TEXT");
       //printer.setCharacterSet("CP864");
@@ -855,7 +855,7 @@ async function processPrintJob2(printerCfg, body) {
       await printInvoice(printer, body);
     } else if (body.text) {
       // Arabic → Image mode
-      
+
       // if (containsArabic(body.text)) {
       //   await printArabicAsImage(printer, body.text);
       //   console.log("Mode: ARABIC IMAGE");
