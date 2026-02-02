@@ -13,6 +13,11 @@ const { ThermalPrinter, PrinterTypes } = require("node-thermal-printer");
 const axios = require("axios");
 // const sharp = require("sharp");
 const { log } = require("console");
+
+
+// const WebSocket = require("ws");
+// const wss = new WebSocket.Server({ port: 8081 });
+
 //
 
 const app = express();
@@ -36,6 +41,27 @@ const CONFIG = path.join(ROOT, "config");
 const PRINTER_FILE = path.join(CONFIG, "printer.json");
 const CLIENT_FILE = path.join(CONFIG, "clients.json");
 const SERVER_ID_FILE = path.join(CONFIG, "server.id");
+
+
+/* ===============================
+   LOGS
+================================ */
+
+// let clients = [];
+
+// wss.on("connection", (ws) => {
+//   clients.push(ws);
+//   ws.on("close", () => {
+//     clients = clients.filter(c => c !== ws);
+//   });
+// });
+
+// function sendLogToClients(message) {
+//   clients.forEach(ws => {
+//     ws.send(message);
+//   });
+// }
+
 
 /* ===============================
    HELPERS
@@ -254,6 +280,7 @@ app.post("/print", authRequired, (req, res) => {
     // processPrintJob2(printerCfg, req.body);
   } catch (err) {
     console.error("❌ API ERROR:", err);
+    
   }
 });
 
@@ -311,7 +338,9 @@ async function processPrintJob(printerCfg, body) {
       printer.cut();
       await printer.execute();
     } else {
+      console.log("Unsupported payload",body)
       console.log("❌ Unsupported payload");
+      
       return;
     }
 
