@@ -354,6 +354,55 @@ app.post("/print", authRequired, (req, res) => {
 // }
 
 
+// 02-02-26
+// async function processPrintJob(printerCfg, body) {
+//   console.log("\n--- PRINT JOB START ---");
+
+//   try {
+//     /* ========= AUTO DETECT ========= */
+
+//     if (body.isInvoiceData?.isInvoice) {
+//       console.log("Mode: INVOICE");
+//       const printer = await createPrinter(printerCfg);
+//       if (!printer) return;
+//       await printInvoice(printer, body);
+//     } else if (body.isInvoiceData?.isALLKot && body.isInvoiceData?.isKot) {
+//       // When both ALL KOT and KOT are true, use smart routing
+//       console.log("Mode: SMART KOT ROUTING (ALL KOT + KOT)");
+//       await routeKotToPrinters(body);
+//       return; // Return here since routeKotToPrinters handles its own printing
+//     } else if (body.isInvoiceData?.isALLKot) {
+//       console.log("Mode: ALL KOT ONLY");
+//       const printer = await createPrinter(printerCfg);
+//       if (!printer) return;
+      
+//       await all_kot_print(printer, body);
+//       await printer.execute();
+//     } else if (body.isInvoiceData?.isKot) {
+//       console.log("Mode: SMART KOT ROUTING (KOT ONLY)");
+//       await routeKotToPrinters(body);
+//       return; // Return here since routeKotToPrinters handles its own printing
+//     } else if (body.text) {
+//       console.log("Mode: TEXT");
+//       const printer = await createPrinter(printerCfg);
+//       if (!printer) return;
+      
+//       printer.println(body.text);
+//       printer.cut();
+//       await printer.execute();
+//     } else {
+//       console.log("❌ Unsupported payload", JSON.stringify(body, null, 2));
+//       return;
+//     }
+
+//     console.log("✅ PRINT SUCCESS");
+//   } catch (err) {
+//     console.error("❌ PRINT FAILED:", err.message);
+//   }
+
+//   console.log("--- PRINT JOB END ---\n");
+// }
+
 async function processPrintJob(printerCfg, body) {
   console.log("\n--- PRINT JOB START ---");
 
@@ -365,23 +414,14 @@ async function processPrintJob(printerCfg, body) {
       const printer = await createPrinter(printerCfg);
       if (!printer) return;
       await printInvoice(printer, body);
-    } else if (body.isInvoiceData?.isALLKot && body.isInvoiceData?.isKot) {
-      // When both ALL KOT and KOT are true, use smart routing
-      console.log("Mode: SMART KOT ROUTING (ALL KOT + KOT)");
+    } 
+    else if (body.isInvoiceData?.isKot) {
+      // Handle ALL KOT cases with smart routing
+      console.log("Mode: KOT ROUTING (KOT or ALL KOT or BOTH)");
       await routeKotToPrinters(body);
       return; // Return here since routeKotToPrinters handles its own printing
-    } else if (body.isInvoiceData?.isALLKot) {
-      console.log("Mode: ALL KOT ONLY");
-      const printer = await createPrinter(printerCfg);
-      if (!printer) return;
-      
-      await all_kot_print(printer, body);
-      await printer.execute();
-    } else if (body.isInvoiceData?.isKot) {
-      console.log("Mode: SMART KOT ROUTING (KOT ONLY)");
-      await routeKotToPrinters(body);
-      return; // Return here since routeKotToPrinters handles its own printing
-    } else if (body.text) {
+    } 
+    else if (body.text) {
       console.log("Mode: TEXT");
       const printer = await createPrinter(printerCfg);
       if (!printer) return;
@@ -389,7 +429,8 @@ async function processPrintJob(printerCfg, body) {
       printer.println(body.text);
       printer.cut();
       await printer.execute();
-    } else {
+    } 
+    else {
       console.log("❌ Unsupported payload", JSON.stringify(body, null, 2));
       return;
     }
@@ -1044,55 +1085,7 @@ function wrapText(text, width) {
 
 // PRINTER WISE PRINT  //
 
-// async function routeKotToPrinters(body) {
-//   console.log("🔀 Routing KOT items by printer...");
 
-//   const printerWiseItems = {};
-
-//   // Group items by printer IP
-//   body.kotTableData.forEach((item) => {
-//     const ip = item.printer;
-
-//     if (!printerWiseItems[ip]) {
-//       printerWiseItems[ip] = [];
-//     }
-
-//     printerWiseItems[ip].push(item);
-//   });
-
-//   // Send print job to each printer
-//   for (const ip in printerWiseItems) {
-//     const printerCfg = findPrinterByIp(ip);
-
-//     if (!printerCfg) {
-//       console.log("❌ No KITCHEN printer configured for IP:", ip);
-//       continue;
-//     }
-
-//     console.log(`🖨️ Printing to ${printerCfg.name} (${ip})`);
-
-//     const printer = new ThermalPrinter({
-//       type: PrinterTypes.EPSON,
-//       interface: `tcp://${printerCfg.connection.ip}:${printerCfg.connection.port}`,
-//       options: { timeout: 15000 },
-//     });
-
-//     const connected = await printer.isPrinterConnected();
-
-//     if (!connected) {
-//       console.log("❌ Printer offline:", ip);
-//       continue;
-//     }
-
-//     const newBody = {
-//       ...body,
-//       kotTableData: printerWiseItems[ip], // only items for this printer
-//     };
-
-//     await kot_print(printer, newBody);
-//     await printer.execute();
-//   }
-// }
 
 
 // async function routeKotToPrinters(body) {
@@ -1147,6 +1140,71 @@ function wrapText(text, width) {
 // }
 
 
+// async function routeKotToPrinters(body) {
+//   console.log("🔀 Routing KOT by product printer...");
+
+//   body = attachPrinterToKotItems(body);
+
+//   const printerWiseItems = {};
+
+//   // Group by printer IP
+//   body.kotTableData.forEach(item => {
+//     const ip = item.printer || item.printer_ip; // Try both fields
+    
+//     if (!ip) {
+//       console.log("❌ No printer IP found for item:", item.itemname);
+//       return;
+//     }
+
+//     if (!printerWiseItems[ip]) {
+//       printerWiseItems[ip] = {
+//         items: [],
+//         printerCfg: findPrinterByIp(ip)
+//       };
+//     }
+
+//     printerWiseItems[ip].items.push(item);
+//   });
+
+//   // Print per printer
+//   for (const ip in printerWiseItems) {
+//     const { items, printerCfg } = printerWiseItems[ip];
+
+//     if (!printerCfg) {
+//       console.log("❌ No printer configuration found for IP:", ip);
+//       continue;
+//     }
+
+//     console.log(`🖨️ Printing ${items.length} items to ${printerCfg.name} (${ip})`);
+
+//     try {
+//       const printer = await createPrinter(printerCfg);
+//       if (!printer) continue;
+
+//       const newBody = {
+//         ...body,
+//         kotTableData: items,
+//       };
+
+//       // Check if we should print all_kot_print or kot_print
+//       if (body.isInvoiceData?.isALLKot) {
+//         // When ALL KOT is true, print both KOT and ALL KOT format
+//         console.log(`📋 Printing ALL KOT format for ${printerCfg.name}`);
+//         await all_kot_print(printer, newBody);
+//       } else {
+//         // Normal KOT printing
+//         console.log(`📋 Printing KOT format for ${printerCfg.name}`);
+//         await kot_print(printer, newBody);
+//       }
+      
+//       await printer.execute();
+//       console.log(`✅ Printed successfully to ${printerCfg.name}`);
+//     } catch (err) {
+//       console.error(`❌ Failed to print to ${printerCfg.name}:`, err.message);
+//     }
+//   }
+// }
+
 async function routeKotToPrinters(body) {
   console.log("🔀 Routing KOT by product printer...");
 
@@ -1193,13 +1251,27 @@ async function routeKotToPrinters(body) {
         kotTableData: items,
       };
 
-      // Check if we should print all_kot_print or kot_print
-      if (body.isInvoiceData?.isALLKot) {
-        // When ALL KOT is true, print both KOT and ALL KOT format
+      // When BOTH isKot AND isALLKot are true, print BOTH formats
+      if (body.isInvoiceData?.isKot && body.isInvoiceData?.isALLKot) {
+        console.log(`📋 Printing BOTH KOT + ALL KOT for ${printerCfg.name}`);
+        
+        // Print KOT format
+        await kot_print(printer, newBody);
+        
+        // Add a separator between KOT and ALL KOT
+        printer.drawLine();
+        printer.newLine();
+        
+        // Print ALL KOT format
+        await all_kot_print(printer, newBody);
+      } 
+      // When only ALL KOT is true
+      else if (body.isInvoiceData?.isALLKot) {
         console.log(`📋 Printing ALL KOT format for ${printerCfg.name}`);
         await all_kot_print(printer, newBody);
-      } else {
-        // Normal KOT printing
+      } 
+      // When only KOT is true (or default case)
+      else {
         console.log(`📋 Printing KOT format for ${printerCfg.name}`);
         await kot_print(printer, newBody);
       }
