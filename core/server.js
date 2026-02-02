@@ -686,7 +686,7 @@ async function all_kot_print(printer, data) {
     {
       text: "Date: " + (master.BillDate || "") + " " + (master.BillTime || ""),
       align: "RIGHT",
-      cols: 24,
+      cols: 28,
     },
   ]);
 
@@ -795,7 +795,7 @@ async function kot_print(printer, data) {
     {
       text: "Date: " + (master.BillDate || "") + " " + (master.BillTime || ""),
       align: "RIGHT",
-      cols: 24,
+      cols: 28,
     },
   ]);
 
