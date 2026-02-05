@@ -423,16 +423,25 @@ async function printInvoice(printer, data) {
   if (master.BillPartyName) {
     printer.println("Party   : " + master.BillPartyName);
   }
-  if (master.BillPartyName !== "Cash") {
+  // if (master.BillPartyName !== "Cash") {
+  //   printer.println("Add: " + master.Address1, "");
+  //   printer.println("Contact: " + master.Ph, "");
+  //   printer.println("Tax-No: " + master.TinNo, "");
+  // }
+  // if (master.BillPartyName !== "3") {
+  //   printer.println("Add: " + master.Address1, "");
+  //   printer.println("Contact: " + master.Ph, "");
+  //   printer.println("Tax-No: " + master.TinNo, "");
+  // }
+
+
+  if (master.BillPartyName !== "Cash" || master.BillPartyName !== "3") {
     printer.println("Add: " + master.Address1, "");
     printer.println("Contact: " + master.Ph, "");
     printer.println("Tax-No: " + master.TinNo, "");
   }
-  if (master.BillPartyName !== "3") {
-    printer.println("Add: " + master.Address1, "");
-    printer.println("Contact: " + master.Ph, "");
-    printer.println("Tax-No: " + master.TinNo, "");
-  }
+ 
+
   printer.drawLine();
 
   printer.tableCustom([
@@ -1104,119 +1113,213 @@ app.get("/api/printers_app", async (req, res) => {
 });
 
 
-app.post("/set_printer_app", authRequired, (req, res) => {
-  console.log("=== RAW REQUEST DEBUG ===");
-  console.log("Content-Type:", req.headers["content-type"]);
-  console.log("Raw body:", JSON.stringify(req.body, null, 2));
-  console.log("Is Array?", Array.isArray(req.body));
-  console.log("=======================");
+// app.post("/set_printer_app", authRequired, (req, res) => {
+//   console.log("=== RAW REQUEST DEBUG ===");
+//   console.log("Content-Type:", req.headers["content-type"]);
+//   console.log("Raw body:", JSON.stringify(req.body, null, 2));
+//   console.log("Is Array?", Array.isArray(req.body));
+//   console.log("=======================");
   
-  try {
-    let printersData = [];
+//   try {
+//     let printersData = [];
     
-    // Check if request body is an array
-    if (Array.isArray(req.body)) {
-      console.log("Received array of printers:", req.body.length);
-      printersData = req.body;
-    } else {
-      // Single printer (wrap in array)
-      console.log("Received single printer");
-      printersData = [req.body];
-    }
+//     // Check if request body is an array
+//     if (Array.isArray(req.body)) {
+//       console.log("Received array of printers:", req.body.length);
+//       printersData = req.body;
+//     } else {
+//       // Single printer (wrap in array)
+//       console.log("Received single printer");
+//       printersData = [req.body];
+//     }
     
-    // Validate each printer in the array
-    const results = [];
-    const errors = [];
+//     // Validate each printer in the array
+//     const results = [];
+//     const errors = [];
     
-    for (let i = 0; i < printersData.length; i++) {
-      const printer = printersData[i];
-      console.log(`Processing printer ${i + 1}:`, printer);
+//     for (let i = 0; i < printersData.length; i++) {
+//       const printer = printersData[i];
+//       console.log(`Processing printer ${i + 1}:`, printer);
       
-      const { printerName, printerIp, role } = printer;
+//       const { printerName, printerIp, role } = printer;
       
-      // Validate required fields for this printer
-      if (!printerName || !printerIp || !role) {
-        errors.push({
-          index: i,
-          error: "Missing required fields",
-          printer,
-          missing: {
-            printerName: !printerName,
-            printerIp: !printerIp,
-            role: !role
-          }
-        });
-        continue;
-      }
+//       // Validate required fields for this printer
+//       if (!printerName || !printerIp || !role) {
+//         errors.push({
+//           index: i,
+//           error: "Missing required fields",
+//           printer,
+//           missing: {
+//             printerName: !printerName,
+//             printerIp: !printerIp,
+//             role: !role
+//           }
+//         });
+//         continue;
+//       }
       
-      // Validate IP format
-      const ipRegex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
-      if (!ipRegex.test(printerIp)) {
-        errors.push({
-          index: i,
-          error: "Invalid IP address format",
-          printerIp
-        });
-        continue;
-      }
+//       // Validate IP format
+//       const ipRegex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
+//       if (!ipRegex.test(printerIp)) {
+//         errors.push({
+//           index: i,
+//           error: "Invalid IP address format",
+//           printerIp
+//         });
+//         continue;
+//       }
       
-      // Save/process the printer
-      // TODO: Your save logic here
+//       // Save/process the printer
+//       // TODO: Your save logic here
       
-      results.push({
-        index: i,
-        status: "success",
-        printer: {
-          printerName,
-          printerIp,
-          role
-        }
-      });
+//       results.push({
+//         index: i,
+//         status: "success",
+//         printer: {
+//           printerName,
+//           printerIp,
+//           role
+//         }
+//       });
       
-      console.log(`Printer ${i + 1} validated:`, printerName);
-    }
+//       console.log(`Printer ${i + 1} validated:`, printerName);
+//     }
     
-    // Check if all printers failed
-    if (results.length === 0 && errors.length > 0) {
-      return res.status(400).json({
-        status: "error",
-        message: "All printers failed validation",
-        totalReceived: printersData.length,
-        errors: errors
-      });
-    }
+//     // Check if all printers failed
+//     if (results.length === 0 && errors.length > 0) {
+//       return res.status(400).json({
+//         status: "error",
+//         message: "All printers failed validation",
+//         totalReceived: printersData.length,
+//         errors: errors
+//       });
+//     }
     
-    // Mixed results (some success, some errors)
-    if (errors.length > 0) {
-      return res.status(207).json({  // 207 Multi-Status
-        status: "partial_success",
-        message: `Processed ${printersData.length} printers`,
-        summary: {
-          total: printersData.length,
-          successful: results.length,
-          failed: errors.length
-        },
-        results: results,
-        errors: errors
-      });
-    }
+//     // Mixed results (some success, some errors)
+//     if (errors.length > 0) {
+//       return res.status(207).json({  // 207 Multi-Status
+//         status: "partial_success",
+//         message: `Processed ${printersData.length} printers`,
+//         summary: {
+//           total: printersData.length,
+//           successful: results.length,
+//           failed: errors.length
+//         },
+//         results: results,
+//         errors: errors
+//       });
+//     }
     
-    // All printers successful
-    res.json({
-      status: "success",
-      message: `Successfully processed ${printersData.length} printer(s)`,
-      total: printersData.length,
-      results: results.map(r => r.printer)
-    });
+//     // All printers successful
+//     res.json({
+//       status: "success",
+//       message: `Successfully processed ${printersData.length} printer(s)`,
+//       total: printersData.length,
+//       results: results.map(r => r.printer)
+//     });
     
-  } catch (error) {
-    console.error("Error processing printers:", error);
-    res.status(500).json({
-      error: "Internal server error",
-      message: error.message
-    });
-  }
-});
+//   } catch (error) {
+//     console.error("Error processing printers:", error);
+//     res.status(500).json({
+//       error: "Internal server error",
+//       message: error.message
+//     });
+//   }
+// });
+
+
+
+// app.post("/api/printer/save", authRequired, (req, res) => {
+//   const printers = loadPrinters();
+//   const incomingData = req.body;
+  
+//   // Generate ID from printerName
+//   const generateIdFromName = (printerName) => {
+//     // Example: "KITCHEN 5" -> "kitchen-5-166558"
+//     const cleanName = printerName.toLowerCase()
+//       .replace(/\s+/g, '-')
+//       .replace(/[^a-z0-9-]/g, '');
+    
+//     // Add timestamp (similar to your example format)
+//     const timestamp = Date.now().toString().slice(-6);
+    
+//     return `${cleanName}-${timestamp}`;
+//   };
+  
+//   // Handle both single and array input
+//   const printersToSave = Array.isArray(incomingData) ? incomingData : [incomingData];
+  
+//   printersToSave.forEach(simplePrinter => {
+//     // Validate required fields
+//     if (!simplePrinter.printerName || !simplePrinter.printerIp) {
+//       return; // Skip invalid entries
+//     }
+    
+//     // Create the full printer object
+//     const fullPrinter = {
+//       id: generateIdFromName(simplePrinter.printerName),
+//       name: simplePrinter.printerName,
+//       role: simplePrinter.role || "KITCHEN",
+//       enabled: simplePrinter.enabled !== undefined ? simplePrinter.enabled : true,
+//       connection: {
+//         ip: simplePrinter.printerIp,
+//         port: simplePrinter.port || 9100
+//       },
+//       paper: {
+//         name: simplePrinter.paperName || "RECIEPT(72mm)",
+//         width: simplePrinter.paperWidth || 576
+//       },
+//       printSettings: {
+//         cut: simplePrinter.cut !== undefined ? simplePrinter.cut : true,
+//         // Add other print settings if needed
+//         openCashDrawer: simplePrinter.openCashDrawer || false,
+//         beep: simplePrinter.beep || false
+//       }
+//     };
+    
+//     // Check if printer with same IP already exists (update it)
+//     const existingIndex = printers.findIndex(
+//       p => p.connection.ip === fullPrinter.connection.ip
+//     );
+    
+//     if (existingIndex >= 0) {
+//       printers[existingIndex] = fullPrinter;
+//     } else {
+//       printers.push(fullPrinter);
+//     }
+//   });
+  
+//   savePrinters(printers);
+//   res.json({ 
+//     success: true, 
+//     message: `Saved ${printersToSave.length} printer(s)`,
+//     data: printers
+//   });
+// });
+
+
+// app.post("/api/printer/save", authRequired, (req, res) => {
+//   const printers = loadPrinters();
+//   const p = req.body;
+
+//   const index = printers.findIndex(x => x.id === p.id);
+//   if (index >= 0) printers[index] = p;
+//   else printers.push(p);
+
+//   savePrinters(printers);
+//   res.json({ success: true });
+// });
+
+
+function savePrinters(printers) {
+  safeWrite(PRINTER_FILE, { printers });
+}
+
+
+
+function safeWrite(file, data) {
+  fs.writeFileSync(file, JSON.stringify(data, null, 2));
+}
 
 //-----------------------------------------------------
 
@@ -1334,6 +1437,144 @@ app.get('/', (req, res) => {
 });
 
 //-----------------------------------------------------------------------
+
+
+// ============== GET SET PRINTER =======================//
+
+// Update your existing /api/printer/save endpoint
+app.post("/api/printer/save_printers", authRequired, (req, res) => {
+  const printers = loadPrinters();
+  console.log(req.body, "tttttttttttttt");
+  const incomingData = req.body;
+  
+  // Generate ID from printerName (keep consistent if updating)
+  const generateIdFromName = (printerName, existingId = null) => {
+    if (existingId) return existingId; // Keep existing ID when updating
+    
+    const cleanName = printerName.toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '');
+    const timestamp = Date.now().toString().slice(-6);
+    return `${cleanName}-${timestamp}`;
+  };
+  
+  // Handle both single and array input
+  const printersToSave = Array.isArray(incomingData) ? incomingData : [incomingData];
+  const results = [];
+  
+  printersToSave.forEach(data => {
+    let fullPrinter;
+    let isSimpleFormat = false;
+    
+    // Check if it's in simple format (from /set_printer_app)
+    if (data.printerName && data.printerIp) {
+      isSimpleFormat = true;
+      fullPrinter = {
+        id: generateIdFromName(data.printerName),
+        name: data.printerName,
+        role: data.role || "KITCHEN",
+        enabled: data.enabled !== undefined ? data.enabled : true,
+        connection: {
+          ip: data.printerIp,
+          port: data.port || 9100
+        },
+        paper: {
+          name: data.paperName || "RECIEPT(72mm)",
+          width: data.paperWidth || 576
+        },
+        printSettings: {
+          cut: data.cut !== undefined ? data.cut : true
+        }
+      };
+    } 
+    // Check if it's in full format
+    else if (data.name && data.connection && data.connection.ip) {
+      fullPrinter = { ...data };
+      if (!fullPrinter.id) {
+        fullPrinter.id = generateIdFromName(data.name);
+      }
+    } 
+    // Invalid format
+    else {
+      results.push({
+        status: "error",
+        error: "Invalid printer format",
+        data: data
+      });
+      return;
+    }
+    
+    // Check if printer with same name already exists
+    const existingIndexByName = printers.findIndex(
+      p => p.name.toLowerCase() === fullPrinter.name.toLowerCase()
+    );
+    
+    // Check if printer with same IP already exists (optional)
+    const existingIndexByIp = printers.findIndex(
+      p => p.connection.ip === fullPrinter.connection.ip
+    );
+    
+    let action = "created";
+    let existingIndex = -1;
+    
+    // Priority 1: Update by name (if same printer name exists)
+    if (existingIndexByName >= 0) {
+      existingIndex = existingIndexByName;
+      action = "updated";
+      // Keep the existing ID when updating by name
+      fullPrinter.id = printers[existingIndex].id;
+    }
+    // Priority 2: Update by IP (optional - uncomment if needed)
+    // else if (existingIndexByIp >= 0) {
+    //   existingIndex = existingIndexByIp;
+    //   action = "updated";
+    //   fullPrinter.id = printers[existingIndex].id;
+    // }
+    
+    if (existingIndex >= 0) {
+      // Update existing printer
+      printers[existingIndex] = fullPrinter;
+      console.log(`Updated printer "${fullPrinter.name}" (IP: ${fullPrinter.connection.ip})`);
+    } else {
+      // Add new printer
+      printers.push(fullPrinter);
+      console.log(`Created new printer "${fullPrinter.name}" (IP: ${fullPrinter.connection.ip})`);
+    }
+    
+    results.push({
+      status: "success",
+      action: action,
+      printer: fullPrinter
+    });
+  });
+  
+  // Save all changes
+  savePrinters(printers);
+  
+  // Check if there were any errors
+  const hasErrors = results.some(r => r.status === "error");
+  
+  if (hasErrors) {
+    return res.status(207).json({
+      success: true,
+      message: `Processed with some errors`,
+      results: results
+    });
+  }
+  
+  res.json({
+    success: true,
+    message: `Successfully saved ${results.length} printer(s)`,
+    results: results
+  });
+});
+
+
+
+
+
+
+
 
 
 

@@ -17,7 +17,7 @@
         "cut": true
       }
     },
-        {
+    {
       "id": "kitchen-166559",
       "name": "Kitchen1",
       "role": "KITCHEN",
@@ -34,13 +34,47 @@
         "cut": true
       }
     },
-            {
+    {
       "id": "kitchen-166560",
       "name": "Kitchen2",
       "role": "KITCHEN",
       "enabled": true,
       "connection": {
         "ip": "192.168.1.4",
+        "port": 9100
+      },
+      "paper": {
+        "name": "RECIEPT(72mm)",
+        "width": 576
+      },
+      "printSettings": {
+        "cut": true
+      }
+    },
+    {
+      "id": "kitchen-5-930099",
+      "name": "KITCHEN 5",
+      "role": "KITCHEN",
+      "enabled": true,
+      "connection": {
+        "ip": "192.168.1.10",
+        "port": 9100
+      },
+      "paper": {
+        "name": "RECIEPT(72mm)",
+        "width": 576
+      },
+      "printSettings": {
+        "cut": true
+      }
+    },
+    {
+      "id": "kitchen-6-930100",
+      "name": "KITCHEN 6",
+      "role": "KITCHEN",
+      "enabled": true,
+      "connection": {
+        "ip": "192.168.1.12",
         "port": 9100
       },
       "paper": {
