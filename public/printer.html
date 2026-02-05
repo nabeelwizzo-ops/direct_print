@@ -787,7 +787,7 @@
         // Fetch printers from API
         async function loadPrintersData() {
             try {
-                const response = await fetch('/api/printers', {
+                const response = await fetch('/api/printers_app', {
                     headers: {
                         ...AUTH,
                         'Content-Type': 'application/json'

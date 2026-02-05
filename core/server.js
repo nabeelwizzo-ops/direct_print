@@ -15,14 +15,19 @@ const axios = require("axios");
 const { log } = require("console");
 
 
-// const WebSocket = require("ws");
-// const wss = new WebSocket.Server({ port: 8081 });
 
-//
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+app.use(express.urlencoded({ extended: true }));
+// Get the root project directory (DIRECT_PRINT)
+const projectRoot = path.join(__dirname, '..');
+
+// Serve static files from 'public' directory
+app.use(express.static(path.join(projectRoot, 'public')));
+
 
 /* ===============================
    ENV
@@ -42,7 +47,6 @@ const PRINTER_FILE = path.join(CONFIG, "printer.json");
 const CLIENT_FILE = path.join(CONFIG, "clients.json");
 const SERVER_ID_FILE = path.join(CONFIG, "server.id");
 
-
 /* ===============================
    LOGS
 ================================ */
@@ -61,7 +65,6 @@ const SERVER_ID_FILE = path.join(CONFIG, "server.id");
 //     ws.send(message);
 //   });
 // }
-
 
 /* ===============================
    HELPERS
@@ -264,7 +267,7 @@ app.post("/print", authRequired, (req, res) => {
       console.log("❌ Printer not found");
       return res.status(404).json({ error: "Printer not found or disabled" });
     }
-
+      
     // ✅ RESPOND IMMEDIATELY
     res.json({
       success: true,
@@ -280,128 +283,10 @@ app.post("/print", authRequired, (req, res) => {
     // processPrintJob2(printerCfg, req.body);
   } catch (err) {
     console.error("❌ API ERROR:", err);
-    
   }
 });
 
-// async function processPrintJob(printerCfg, body) {
-//   console.log("\n--- PRINT JOB START ---");
 
-//   try {
-//     const printer = new ThermalPrinter({
-//       type: PrinterTypes.EPSON,
-//       interface: `tcp://${printerCfg.connection.ip}:${printerCfg.connection.port}`,
-//       options: { timeout: 15000 },
-//     });
-
-//     const connected = await printer.isPrinterConnected();
-//     console.log("Printer connected:", connected);
-
-//     if (!connected) {
-//       console.log("❌ Printer offline");
-//       return;
-//     }
-
-//     /* ========= AUTO DETECT ========= */
-
-//     if (body.isInvoiceData?.isInvoice) {
-//       console.log("Mode: INVOICE");
-//       await printInvoice(printer, body);
-//     } else if (body.isInvoiceData?.isALLKot && body.isInvoiceData?.isKot) {
-
-//       console.log("Mode: KOT");
-//       await kot_print(printer, body);
-
-//       console.log("Mode: ALL KOT");
-//       await all_kot_print(printer, body);
-
-//       // Execute once after both print functions
-//       await printer.execute();
-//       console.log("EXCUTED ALL KOT + KOT");
-//     } else if (body.isInvoiceData?.isKot) {
-
-
-//       console.log("Mode: SMART KOT ROUTING");
-//       await routeKotToPrinters(body);
-//       return;
-
-//     } else if (body.text) {
-//       // ✅ Arabic → IMAGE MODE
-
-//       // if (containsArabic(body.text)) {
-//       //   await printArabicAsImage(printer, body.text);
-//       //   return res.json({ success: true, mode: "arabic-image" });
-//       // }
-
-//       console.log("Mode: TEXT");
-//       //printer.setCharacterSet("CP864");
-//       printer.println(body.text);
-//       printer.cut();
-//       await printer.execute();
-//     } else {
-//       console.log("Unsupported payload",body)
-//       console.log("❌ Unsupported payload");
-      
-//       return;
-//     }
-
-//     console.log("✅ PRINT SUCCESS");
-//   } catch (err) {
-//     console.error("❌ PRINT FAILED:", err.message);
-//   }
-
-//   console.log("--- PRINT JOB END ---\n");
-// }
-
-
-// 02-02-26
-// async function processPrintJob(printerCfg, body) {
-//   console.log("\n--- PRINT JOB START ---");
-
-//   try {
-//     /* ========= AUTO DETECT ========= */
-
-//     if (body.isInvoiceData?.isInvoice) {
-//       console.log("Mode: INVOICE");
-//       const printer = await createPrinter(printerCfg);
-//       if (!printer) return;
-//       await printInvoice(printer, body);
-//     } else if (body.isInvoiceData?.isALLKot && body.isInvoiceData?.isKot) {
-//       // When both ALL KOT and KOT are true, use smart routing
-//       console.log("Mode: SMART KOT ROUTING (ALL KOT + KOT)");
-//       await routeKotToPrinters(body);
-//       return; // Return here since routeKotToPrinters handles its own printing
-//     } else if (body.isInvoiceData?.isALLKot) {
-//       console.log("Mode: ALL KOT ONLY");
-//       const printer = await createPrinter(printerCfg);
-//       if (!printer) return;
-      
-//       await all_kot_print(printer, body);
-//       await printer.execute();
-//     } else if (body.isInvoiceData?.isKot) {
-//       console.log("Mode: SMART KOT ROUTING (KOT ONLY)");
-//       await routeKotToPrinters(body);
-//       return; // Return here since routeKotToPrinters handles its own printing
-//     } else if (body.text) {
-//       console.log("Mode: TEXT");
-//       const printer = await createPrinter(printerCfg);
-//       if (!printer) return;
-      
-//       printer.println(body.text);
-//       printer.cut();
-//       await printer.execute();
-//     } else {
-//       console.log("❌ Unsupported payload", JSON.stringify(body, null, 2));
-//       return;
-//     }
-
-//     console.log("✅ PRINT SUCCESS");
-//   } catch (err) {
-//     console.error("❌ PRINT FAILED:", err.message);
-//   }
-
-//   console.log("--- PRINT JOB END ---\n");
-// }
 
 async function processPrintJob(printerCfg, body) {
   console.log("\n--- PRINT JOB START ---");
@@ -414,23 +299,20 @@ async function processPrintJob(printerCfg, body) {
       const printer = await createPrinter(printerCfg);
       if (!printer) return;
       await printInvoice(printer, body);
-    } 
-    else if (body.isInvoiceData?.isKot) {
+    } else if (body.isInvoiceData?.isKot) {
       // Handle ALL KOT cases with smart routing
       console.log("Mode: KOT ROUTING (KOT or ALL KOT or BOTH)");
       await routeKotToPrinters(body);
       return; // Return here since routeKotToPrinters handles its own printing
-    } 
-    else if (body.text) {
+    } else if (body.text) {
       console.log("Mode: TEXT");
       const printer = await createPrinter(printerCfg);
       if (!printer) return;
-      
+
       printer.println(body.text);
       printer.cut();
       await printer.execute();
-    } 
-    else {
+    } else {
       console.log("❌ Unsupported payload", JSON.stringify(body, null, 2));
       return;
     }
@@ -442,7 +324,6 @@ async function processPrintJob(printerCfg, body) {
 
   console.log("--- PRINT JOB END ---\n");
 }
-
 
 // Helper function to create printer and check connection
 async function createPrinter(printerCfg) {
@@ -459,7 +340,7 @@ async function createPrinter(printerCfg) {
     console.log("❌ Printer offline");
     return null;
   }
-  
+
   return printer;
 }
 
@@ -468,7 +349,6 @@ async function createPrinter(printerCfg) {
 /* ===============================
    INVOICE PRINTER
 ================================ */
-
 
 function fmt(val, digits = 2) {
   const num = Number(val);
@@ -1086,125 +966,6 @@ function wrapText(text, width) {
 // PRINTER WISE PRINT  //
 
 
-
-
-// async function routeKotToPrinters(body) {
-//   console.log("🔀 Routing KOT by product printer...");
-
-//   body = attachPrinterToKotItems(body);
-
-//   const printerWiseItems = {};
-
-//   // Group by printer
-//   body.kotTableData.forEach(item => {
-//     const ip = item.printer;
-
-//     if (!printerWiseItems[ip]) {
-//       printerWiseItems[ip] = [];
-//     }
-
-//     printerWiseItems[ip].push(item);
-//   });
-
-//   // Print per printer
-//   for (const ip in printerWiseItems) {
-//     const printerCfg = findPrinterByIp(ip);
-
-//     if (!printerCfg) {
-//       console.log("❌ No KITCHEN printer for IP:", ip);
-//       continue;
-//     }
-
-//     console.log(`🖨️ Printing ${printerWiseItems[ip].length} items to ${printerCfg.name}`);
-
-//     const printer = new ThermalPrinter({
-//       type: PrinterTypes.EPSON,
-//       interface: `tcp://${printerCfg.connection.ip}:${printerCfg.connection.port}`,
-//       options: { timeout: 15000 },
-//     });
-
-//     const connected = await printer.isPrinterConnected();
-//     if (!connected) {
-//       console.log("❌ Printer offline:", ip);
-//       continue;
-//     }
-
-//     const newBody = {
-//       ...body,
-//       kotTableData: printerWiseItems[ip],
-//     };
-
-//     await kot_print(printer, newBody);
-//     await printer.execute();
-//   }
-// }
-
-
-// async function routeKotToPrinters(body) {
-//   console.log("🔀 Routing KOT by product printer...");
-
-//   body = attachPrinterToKotItems(body);
-
-//   const printerWiseItems = {};
-
-//   // Group by printer IP
-//   body.kotTableData.forEach(item => {
-//     const ip = item.printer || item.printer_ip; // Try both fields
-    
-//     if (!ip) {
-//       console.log("❌ No printer IP found for item:", item.itemname);
-//       return;
-//     }
-
-//     if (!printerWiseItems[ip]) {
-//       printerWiseItems[ip] = {
-//         items: [],
-//         printerCfg: findPrinterByIp(ip)
-//       };
-//     }
-
-//     printerWiseItems[ip].items.push(item);
-//   });
-
-//   // Print per printer
-//   for (const ip in printerWiseItems) {
-//     const { items, printerCfg } = printerWiseItems[ip];
-
-//     if (!printerCfg) {
-//       console.log("❌ No printer configuration found for IP:", ip);
-//       continue;
-//     }
-
-//     console.log(`🖨️ Printing ${items.length} items to ${printerCfg.name} (${ip})`);
-
-//     try {
-//       const printer = await createPrinter(printerCfg);
-//       if (!printer) continue;
-
-//       const newBody = {
-//         ...body,
-//         kotTableData: items,
-//       };
-
-//       // Check if we should print all_kot_print or kot_print
-//       if (body.isInvoiceData?.isALLKot) {
-//         // When ALL KOT is true, print both KOT and ALL KOT format
-//         console.log(`📋 Printing ALL KOT format for ${printerCfg.name}`);
-//         await all_kot_print(printer, newBody);
-//       } else {
-//         // Normal KOT printing
-//         console.log(`📋 Printing KOT format for ${printerCfg.name}`);
-//         await kot_print(printer, newBody);
-//       }
-      
-//       await printer.execute();
-//       console.log(`✅ Printed successfully to ${printerCfg.name}`);
-//     } catch (err) {
-//       console.error(`❌ Failed to print to ${printerCfg.name}:`, err.message);
-//     }
-//   }
-// }
-
 async function routeKotToPrinters(body) {
   console.log("🔀 Routing KOT by product printer...");
 
@@ -1213,9 +974,9 @@ async function routeKotToPrinters(body) {
   const printerWiseItems = {};
 
   // Group by printer IP
-  body.kotTableData.forEach(item => {
+  body.kotTableData.forEach((item) => {
     const ip = item.printer || item.printer_ip; // Try both fields
-    
+
     if (!ip) {
       console.log("❌ No printer IP found for item:", item.itemname);
       return;
@@ -1224,7 +985,7 @@ async function routeKotToPrinters(body) {
     if (!printerWiseItems[ip]) {
       printerWiseItems[ip] = {
         items: [],
-        printerCfg: findPrinterByIp(ip)
+        printerCfg: findPrinterByIp(ip),
       };
     }
 
@@ -1240,7 +1001,9 @@ async function routeKotToPrinters(body) {
       continue;
     }
 
-    console.log(`🖨️ Printing ${items.length} items to ${printerCfg.name} (${ip})`);
+    console.log(
+      `🖨️ Printing ${items.length} items to ${printerCfg.name} (${ip})`,
+    );
 
     try {
       const printer = await createPrinter(printerCfg);
@@ -1254,28 +1017,28 @@ async function routeKotToPrinters(body) {
       // When BOTH isKot AND isALLKot are true, print BOTH formats
       if (body.isInvoiceData?.isKot && body.isInvoiceData?.isALLKot) {
         console.log(`📋 Printing BOTH KOT + ALL KOT for ${printerCfg.name}`);
-        
+
         // Print KOT format
         await kot_print(printer, newBody);
-        
+
         // Add a separator between KOT and ALL KOT
         printer.drawLine();
         printer.newLine();
-        
+
         // Print ALL KOT format
         await all_kot_print(printer, newBody);
-      } 
+      }
       // When only ALL KOT is true
       else if (body.isInvoiceData?.isALLKot) {
         console.log(`📋 Printing ALL KOT format for ${printerCfg.name}`);
         await all_kot_print(printer, newBody);
-      } 
+      }
       // When only KOT is true (or default case)
       else {
         console.log(`📋 Printing KOT format for ${printerCfg.name}`);
         await kot_print(printer, newBody);
       }
-      
+
       await printer.execute();
       console.log(`✅ Printed successfully to ${printerCfg.name}`);
     } catch (err) {
@@ -1284,36 +1047,13 @@ async function routeKotToPrinters(body) {
   }
 }
 
-
-
 function findPrinterByIp(ip) {
   const printers = loadPrinters();
 
   return printers.find(
-    (p) =>
-      p.enabled &&
-      p.role === "KITCHEN" &&
-      p.connection.ip === ip
+    (p) => p.enabled && p.role === "KITCHEN" && p.connection.ip === ip,
   );
 }
-
-
-// function attachPrinterToKotItems(body) {
-//   const tableMap = {};
-
-//   // Map item name -> printer_ip
-//   body.table.forEach(t => {
-//     tableMap[t.ItemNameTextField.trim()] = t.printer_ip;
-//   });
-
-//   // Inject printer into kot items
-//   body.kotTableData.forEach(k => {
-//     const name = k.itemname.trim();
-//     k.printer = tableMap[name];   // very important
-//   });
-
-//   return body;
-// }
 
 
 function attachPrinterToKotItems(body) {
@@ -1321,7 +1061,7 @@ function attachPrinterToKotItems(body) {
 
   // Map item name -> printer_ip from the table array
   if (body.table && Array.isArray(body.table)) {
-    body.table.forEach(t => {
+    body.table.forEach((t) => {
       const itemName = (t.ItemNameTextField || "").trim();
       if (itemName && t.printer_ip) {
         tableMap[itemName] = t.printer_ip;
@@ -1331,7 +1071,7 @@ function attachPrinterToKotItems(body) {
 
   // Inject printer into kot items
   if (body.kotTableData && Array.isArray(body.kotTableData)) {
-    body.kotTableData.forEach(k => {
+    body.kotTableData.forEach((k) => {
       const name = (k.itemname || "").trim();
       if (name && tableMap[name]) {
         k.printer = tableMap[name];
@@ -1343,6 +1083,257 @@ function attachPrinterToKotItems(body) {
 
   return body;
 }
+
+
+
+/* ===============================
+   API : PRINTERS IN APP
+================================ */
+
+app.get("/api/printers_app", async (req, res) => {
+  const printers = loadPrinters();
+
+  const result = await Promise.all(
+    printers.map(async (p) => ({
+      ...p,
+      online: await isPrinterOnline(p.connection.ip, p.connection.port),
+    })),
+  );
+
+  res.json({ printers: result });
+});
+
+
+app.post("/set_printer_app", authRequired, (req, res) => {
+  console.log("=== RAW REQUEST DEBUG ===");
+  console.log("Content-Type:", req.headers["content-type"]);
+  console.log("Raw body:", JSON.stringify(req.body, null, 2));
+  console.log("Is Array?", Array.isArray(req.body));
+  console.log("=======================");
+  
+  try {
+    let printersData = [];
+    
+    // Check if request body is an array
+    if (Array.isArray(req.body)) {
+      console.log("Received array of printers:", req.body.length);
+      printersData = req.body;
+    } else {
+      // Single printer (wrap in array)
+      console.log("Received single printer");
+      printersData = [req.body];
+    }
+    
+    // Validate each printer in the array
+    const results = [];
+    const errors = [];
+    
+    for (let i = 0; i < printersData.length; i++) {
+      const printer = printersData[i];
+      console.log(`Processing printer ${i + 1}:`, printer);
+      
+      const { printerName, printerIp, role } = printer;
+      
+      // Validate required fields for this printer
+      if (!printerName || !printerIp || !role) {
+        errors.push({
+          index: i,
+          error: "Missing required fields",
+          printer,
+          missing: {
+            printerName: !printerName,
+            printerIp: !printerIp,
+            role: !role
+          }
+        });
+        continue;
+      }
+      
+      // Validate IP format
+      const ipRegex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
+      if (!ipRegex.test(printerIp)) {
+        errors.push({
+          index: i,
+          error: "Invalid IP address format",
+          printerIp
+        });
+        continue;
+      }
+      
+      // Save/process the printer
+      // TODO: Your save logic here
+      
+      results.push({
+        index: i,
+        status: "success",
+        printer: {
+          printerName,
+          printerIp,
+          role
+        }
+      });
+      
+      console.log(`Printer ${i + 1} validated:`, printerName);
+    }
+    
+    // Check if all printers failed
+    if (results.length === 0 && errors.length > 0) {
+      return res.status(400).json({
+        status: "error",
+        message: "All printers failed validation",
+        totalReceived: printersData.length,
+        errors: errors
+      });
+    }
+    
+    // Mixed results (some success, some errors)
+    if (errors.length > 0) {
+      return res.status(207).json({  // 207 Multi-Status
+        status: "partial_success",
+        message: `Processed ${printersData.length} printers`,
+        summary: {
+          total: printersData.length,
+          successful: results.length,
+          failed: errors.length
+        },
+        results: results,
+        errors: errors
+      });
+    }
+    
+    // All printers successful
+    res.json({
+      status: "success",
+      message: `Successfully processed ${printersData.length} printer(s)`,
+      total: printersData.length,
+      results: results.map(r => r.printer)
+    });
+    
+  } catch (error) {
+    console.error("Error processing printers:", error);
+    res.status(500).json({
+      error: "Internal server error",
+      message: error.message
+    });
+  }
+});
+
+//-----------------------------------------------------
+
+//   try {
+//       // Debug logging
+//   console.log("=== RAW REQUEST DEBUG ===");
+//   console.log("Content-Type:", req.headers["content-type"]);
+//   console.log("Raw body:", req.body);
+//   console.log("Body type:", typeof req.body);
+//   console.log("Body keys:", Object.keys(req.body || {}));
+//   console.log("=======================");
+  
+//   const { printerName, printerIp, role } = req.body;
+  
+//   // More detailed logging
+//   console.log("Parsed values:");
+//   console.log("printerName:", printerName, "Type:", typeof printerName);
+//   console.log("printerIp:", printerIp, "Type:", typeof printerIp);
+//   console.log("role:", role, "Type:", typeof role);
+  
+//   // Your existing validation...
+//   if (!printerName || !printerIp || !role) {
+//     console.log("MISSING FIELDS DETECTED!");
+//     return res.status(400).json({
+//       error: "Missing required fields",
+//       required: ["printerName", "printerIp", "role"],
+//       received: {
+//         printerName: printerName || "undefined",
+//         printerIp: printerIp || "undefined", 
+//         role: role || "undefined"
+//       }
+//     });
+//   }
+    
+//     // Validate IP address format
+//     const ipRegex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
+//     if (!ipRegex.test(printerIp)) {
+//       return res.status(400).json({
+//         error: "Invalid IP address format"
+//       });
+//     }
+    
+//     // Check if printer name already exists
+//     const existingByName = printers.find(p => 
+//       p.printerName.toLowerCase() === printerName.toLowerCase()
+//     );
+    
+//     if (existingByName) {
+//       // Update existing printer if name matches
+//       existingByName.printerIp = printerIp;
+//       existingByName.role = role;
+//       existingByName.lastSeen = new Date().toISOString();
+      
+//       console.log("Updated existing printer:", printerName);
+      
+//       return res.json({
+//         status: "success",
+//         message: "Printer updated successfully",
+//         action: "updated",
+//         printer: existingByName
+//       });
+//     }
+    
+//     // Check if IP already exists (prevent duplicates)
+//     const existingByIp = printers.find(p => p.printerIp === printerIp);
+//     if (existingByIp) {
+//       return res.status(409).json({
+//         error: "IP address already assigned to another printer",
+//         existingPrinter: {
+//           name: existingByIp.printerName,
+//           role: existingByIp.role
+//         }
+//       });
+//     }
+    
+//     // Create new printer object
+//     const newPrinter = {
+//       printerName,
+//       printerIp,
+//       role: role.toUpperCase(), // Normalize role to uppercase
+//       isActive: true,
+//       createdAt: new Date().toISOString(),
+//       lastSeen: new Date().toISOString()
+//     };
+    
+//     // Add to printers array
+//     printers.push(newPrinter);
+    
+//     console.log("Registered new printer:", newPrinter);
+    
+//     res.status(201).json({
+//       status: "success",
+//       message: "Printer registered successfully",
+//       action: "created",
+//       printer: newPrinter
+//     });
+    
+//   } catch (error) {
+//     console.error("Error setting printer:", error);
+//     res.status(500).json({
+//       error: "Internal server error",
+//       message: error.message
+//     });
+//   }
+// });
+
+
+
+
+// Route for the root URL - serve your dashboard.html
+app.get('/', (req, res) => {
+    // If your HTML file is named dashboard.html
+    res.sendFile(path.join(__dirname, 'dashboard.html'));
+    // If your HTML file has a different name, change it accordingly
+});
+
+//-----------------------------------------------------------------------
 
 
 
