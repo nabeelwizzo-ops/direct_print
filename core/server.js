@@ -575,7 +575,7 @@ async function all_kot_print(printer, data) {
     {
       text: "Date: " + (master.BillDate || "") + " " + (master.BillTime || ""),
       align: "RIGHT",
-      cols: 28,
+      cols: 24,
     },
   ]);
 
@@ -684,7 +684,7 @@ async function kot_print(printer, data) {
     {
       text: "Date: " + (master.BillDate || "") + " " + (master.BillTime || ""),
       align: "RIGHT",
-      cols: 28,
+      cols: 24,
     },
   ]);
 
@@ -1444,7 +1444,7 @@ app.get('/', (req, res) => {
 // Update your existing /api/printer/save endpoint
 app.post("/api/printer/save_printers", authRequired, (req, res) => {
   const printers = loadPrinters();
-  console.log(req.body, "tttttttttttttt");
+ // console.log(req.body, "tttttttttttttt");
   const incomingData = req.body;
   
   // Generate ID from printerName (keep consistent if updating)
@@ -1534,11 +1534,11 @@ app.post("/api/printer/save_printers", authRequired, (req, res) => {
     if (existingIndex >= 0) {
       // Update existing printer
       printers[existingIndex] = fullPrinter;
-      console.log(`Updated printer "${fullPrinter.name}" (IP: ${fullPrinter.connection.ip})`);
+     // console.log(`Updated printer "${fullPrinter.name}" (IP: ${fullPrinter.connection.ip})`);
     } else {
       // Add new printer
       printers.push(fullPrinter);
-      console.log(`Created new printer "${fullPrinter.name}" (IP: ${fullPrinter.connection.ip})`);
+     // console.log(`Created new printer "${fullPrinter.name}" (IP: ${fullPrinter.connection.ip})`);
     }
     
     results.push({
@@ -1568,14 +1568,6 @@ app.post("/api/printer/save_printers", authRequired, (req, res) => {
     results: results
   });
 });
-
-
-
-
-
-
-
-
 
 
 /* ===============================
