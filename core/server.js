@@ -490,7 +490,7 @@ async function printInvoice(printer, data) {
   printer.leftRight("Sub Total:", fmt(master.BillTotalField, 2));
   printer.leftRight("Disc Amt:", fmt(master.BillDiscAmtField, 2));
   printer.leftRight("Tax  Amt:", fmt(master.TItTaxAmt, 2));
-  printer.leftRight("Net Total:", fmt(master.BillNetTotalField, 2));
+ // printer.leftRight("Net Total:", fmt(master.BillNetTotalField, 2));
 
   printer.drawLine();
 
