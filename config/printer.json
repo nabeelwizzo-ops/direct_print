@@ -6,7 +6,7 @@
       "role": "CASHIER",
       "enabled": true,
       "connection": {
-        "ip": "192.168.1.4",
+        "ip": "192.168.1.100",
         "port": 9100
       },
       "paper": {

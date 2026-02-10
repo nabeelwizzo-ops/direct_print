@@ -298,7 +298,8 @@ async function processPrintJob(printerCfg, body) {
       console.log("Mode: INVOICE");
       const printer = await createPrinter(printerCfg);
       if (!printer) return;
-      await printInvoice(printer, body);
+      //await printInvoice(printer, body);
+      await printInvoice_custom(printer,body);
     } else if (body.isInvoiceData?.isKot) {
       // Handle ALL KOT cases with smart routing
       console.log("Mode: KOT ROUTING (KOT or ALL KOT or BOTH)");
@@ -530,6 +531,134 @@ async function printInvoice(printer, data) {
 
   await printer.execute();
 }
+
+
+async function printInvoice_custom(printer, data) {
+  const {
+    company = [],
+    master = {},
+    table = [],
+  } = data;
+
+  const comp = company[0] || {};
+
+  const fmt = (n, d = 2) =>
+    Number(n || 0).toFixed(d);
+
+  /* =========================
+     1) LOGO (optional)
+  ========================= */
+  printer.alignCenter();
+
+  if (data.logo) {
+    try {
+      const logoPath = await downloadImage(data.logo);
+      await printer.printImage(logoPath);
+      printer.newLine();
+    } catch (e) {
+      console.log("Logo error:", e.message);
+    }
+  }
+
+   printer.newLine();
+
+  /* =========================
+     2) COMPANY HEADER
+  ========================= */
+  printer.bold(true);
+  printer.println(comp.Name || "COMPANY NAME");
+  printer.bold(false);
+
+
+  if (comp.Place) printer.println(comp.Place);
+  if (comp.Ph) printer.println("Ph : " + comp.Ph);
+
+  printer.newLine();
+  printer.drawLine();
+  printer.bold(true);
+  printer.println(" INVOICE ");
+  printer.bold(false);
+
+  printer.drawLine();
+
+  /* =========================
+     3) BILL INFO (two sides)
+  ========================= */
+  printer.alignLeft();
+
+  printer.leftRight(
+    "Bill No : " + (master.BillNo ?? ""),
+    "Date : " + (master.BillDate || "")
+  );
+
+  printer.leftRight(
+    "Party : " + (master.BillPartyName || "Cash"),
+    "Time : " + (master.BillTime || "")
+  );
+
+  printer.drawLine();
+
+  /* =========================
+     4) TABLE HEADER (48 COLS)
+  ========================= */
+  printer.tableCustom([
+    { text: "#", cols: 3, align: "LEFT", bold: true },
+    { text: "Item Name", cols: 21, align: "LEFT", bold: true },
+    { text: "Qty", cols: 4, align: "CENTER", bold: true },
+    { text: "Rate", cols: 10, align: "RIGHT", bold: true },
+    { text: "Net", cols: 10, align: "RIGHT", bold: true },
+  ]);
+
+  printer.drawLine();
+
+  /* =========================
+     5) ITEMS (single row)
+  ========================= */
+  table.forEach((it, i) => {
+    const name = String(it.ItemNameTextField || "")
+      .substring(0, 21);
+
+    printer.tableCustom([
+      { text: i + 1, cols: 3, align: "LEFT" },
+      { text: name, cols: 21, align: "LEFT" },
+      { text: it.qty ?? 0, cols: 4, align: "CENTER" },
+      { text: fmt(it.Rate1), cols: 10, align: "RIGHT" },
+      { text: fmt(it.total), cols: 10, align: "RIGHT" },
+    ]);
+  });
+
+  printer.drawLine();
+
+  /* =========================
+     6) TOTALS
+  ========================= */
+  printer.leftRight("Sub Total :", fmt(master.BillTotalField));
+  printer.leftRight("Disc Amt  :", fmt(master.BillDiscAmtField));
+
+  printer.drawLine();
+
+  printer.bold(true);
+  printer.leftRight("NET TOTAL :", fmt(master.BillNetTotalField));
+  printer.bold(false);
+
+  printer.drawLine();
+
+  /* =========================
+     7) FOOTER
+  ========================= */
+  printer.alignCenter();
+  printer.println("Thanks for your shopping");
+  printer.println("We are adding consumed tax");
+
+  printer.newLine();
+  printer.cut();
+  printer.beep();
+  printer.beep();
+  printer.beep();
+
+  await printer.execute();
+}
+
 
 // ALL KOT PRINT
 
