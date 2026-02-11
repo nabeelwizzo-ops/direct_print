@@ -298,7 +298,7 @@ async function processPrintJob(printerCfg, body) {
       console.log("Mode: INVOICE");
       const printer = await createPrinter(printerCfg);
       if (!printer) return;
-      //await printInvoice(printer, body);
+     // await printInvoice(printer, body);
       await printInvoice_custom(printer,body);
     } else if (body.isInvoiceData?.isKot) {
       // Handle ALL KOT cases with smart routing
@@ -601,31 +601,74 @@ async function printInvoice_custom(printer, data) {
   /* =========================
      4) TABLE HEADER (48 COLS)
   ========================= */
+  // printer.tableCustom([
+  //   { text: "#", cols: 3, align: "LEFT", bold: true },
+  //   { text: "Item Name", cols: 21, align: "LEFT", bold: true },
+  //   { text: "Qty", cols: 4, align: "CENTER", bold: true },
+  //   { text: "Rate", cols: 10, align: "RIGHT", bold: true },
+  //   { text: "Net", cols: 10, align: "RIGHT", bold: true },
+  // ]);
+
+
+
   printer.tableCustom([
-    { text: "#", cols: 3, align: "LEFT", bold: true },
-    { text: "Item Name", cols: 21, align: "LEFT", bold: true },
-    { text: "Qty", cols: 4, align: "CENTER", bold: true },
-    { text: "Rate", cols: 10, align: "RIGHT", bold: true },
-    { text: "Net", cols: 10, align: "RIGHT", bold: true },
+    { text: "#", align: "LEFT", cols: 3, bold: true },
+    {
+      text: "Item Name",
+      align: "LEFT",
+      cols: 21,
+      bold: true,
+    },
+    {
+      text: "Qty",
+      align: "CENTER",
+      cols: 4,
+      bold: true,
+    },
+    { text: "Rate", align: "RIGHT", cols: 10, bold: true },
+    { text: "Net",  align: "RIGHT", cols: 10, bold: true },
   ]);
+
 
   printer.drawLine();
 
   /* =========================
      5) ITEMS (single row)
   ========================= */
-  table.forEach((it, i) => {
-    const name = String(it.ItemNameTextField || "")
-      .substring(0, 21);
+  // table.forEach((it, i) => {
+  //   const name = String(it.ItemNameTextField || "")
+  //     .substring(0, 21);
 
+  //   printer.tableCustom([
+  //     { text: i + 1, cols: 3, align: "LEFT" },
+  //     { text: name, cols: 21, align: "LEFT" },
+  //     { text: it.qty ?? 0, cols: 4, align: "CENTER" },
+  //     { text: fmt(it.Rate1), cols: 10, align: "RIGHT" },
+  //     { text: fmt(it.total), cols: 10, align: "RIGHT" },
+  //   ]);
+  // });
+
+
+
+    table.forEach((it, i) => {
     printer.tableCustom([
       { text: i + 1, cols: 3, align: "LEFT" },
-      { text: name, cols: 21, align: "LEFT" },
-      { text: it.qty ?? 0, cols: 4, align: "CENTER" },
-      { text: fmt(it.Rate1), cols: 10, align: "RIGHT" },
-      { text: fmt(it.total), cols: 10, align: "RIGHT" },
+      {
+        text: String(it.ItemNameTextField || "").substring(0, 30),
+        cols: 45,
+        align: "LEFT",
+      },
+    ]);
+
+    printer.tableCustom([
+      { text: "", cols: 3 },
+      { text: "", cols: 21 },
+      { text: it.qty ?? 0,      cols: 4, align: "CENTER" },
+      { text: fmt(it.Rate1, 2), cols: 10, align: "RIGHT" },
+      { text: fmt(it.total, 2), cols: 10, align: "RIGHT" },
     ]);
   });
+
 
   printer.drawLine();
 
