@@ -550,15 +550,27 @@ async function printInvoice_custom(printer, data) {
   ========================= */
   printer.alignCenter();
 
+  // if (data.logo) {
+  //   try {
+  //     const logoPath = await downloadImage(data.logo);
+  //     await printer.printImage(logoPath);
+  //     printer.newLine();
+  //   } catch (e) {
+  //     console.log("Logo error:", e.message);
+  //   }
+  // }
+
   if (data.logo) {
-    try {
-      const logoPath = await downloadImage(data.logo);
-      await printer.printImage(logoPath);
-      printer.newLine();
-    } catch (e) {
-      console.log("Logo error:", e.message);
-    }
+  try {
+    const cleanedUrl = encodeURI(data.logo.trim());
+    const logoPath = await downloadImage(cleanedUrl);
+    await printer.printImage(logoPath);
+    printer.newLine();
+  } catch (e) {
+    console.log("Logo error:", e.message);
   }
+}
+
 
    printer.newLine();
 
