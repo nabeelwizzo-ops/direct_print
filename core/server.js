@@ -14,6 +14,8 @@ const axios = require("axios");
 // const sharp = require("sharp");
 const { log } = require("console");
 
+const sharp = require("sharp");
+
 
 
 
@@ -931,21 +933,40 @@ async function kot_print(printer, data) {
   // await printer.execute();
 }
 
+// async function downloadImage(url) {
+//   const filePath = path.join(__dirname, "logo.png");
+
+//   const response = await axios({
+//     url,
+//     method: "GET",
+//     responseType: "stream",
+//   });
+
+//   await new Promise((resolve, reject) => {
+//     const stream = fs.createWriteStream(filePath);
+//     response.data.pipe(stream);
+//     stream.on("finish", resolve);
+//     stream.on("error", reject);
+//   });
+
+//   return filePath;
+// }
+
 async function downloadImage(url) {
   const filePath = path.join(__dirname, "logo.png");
 
   const response = await axios({
     url,
     method: "GET",
-    responseType: "stream",
+    responseType: "arraybuffer",
   });
 
-  await new Promise((resolve, reject) => {
-    const stream = fs.createWriteStream(filePath);
-    response.data.pipe(stream);
-    stream.on("finish", resolve);
-    stream.on("error", reject);
-  });
+  // Convert image to printer-friendly format
+  await sharp(response.data)
+    .resize(300) // optional resize
+    .flatten({ background: "#FFFFFF" }) // remove transparency
+    .png()
+    .toFile(filePath);
 
   return filePath;
 }
