@@ -9,15 +9,22 @@ const cors = require("cors");
 const net = require("net");
 
 const { ThermalPrinter, PrinterTypes } = require("node-thermal-printer");
+
+// your public folder
+console.log("__dirname:", __dirname);
+
+const PUBLIC_FOLDER = path.join(__dirname, "..", "public");
+
+console.log("Correct public path:", PUBLIC_FOLDER);
+
+// resized output file
+const RESIZED_LOGO = path.join(PUBLIC_FOLDER, "logo_print.png");
+const allowedExt = [".png", ".jpg", ".jpeg", ".webp", ".bmp"];
+
 //
 const axios = require("axios");
-// const sharp = require("sharp");
 const { log } = require("console");
-
 const sharp = require("sharp");
-
-
-
 
 const app = express();
 app.use(cors());
@@ -25,11 +32,10 @@ app.use(express.json());
 
 app.use(express.urlencoded({ extended: true }));
 // Get the root project directory (DIRECT_PRINT)
-const projectRoot = path.join(__dirname, '..');
+const projectRoot = path.join(__dirname, "..");
 
 // Serve static files from 'public' directory
-app.use(express.static(path.join(projectRoot, 'public')));
-
+app.use(express.static(path.join(projectRoot, "public")));
 
 /* ===============================
    ENV
@@ -269,7 +275,7 @@ app.post("/print", authRequired, (req, res) => {
       console.log("❌ Printer not found");
       return res.status(404).json({ error: "Printer not found or disabled" });
     }
-      
+
     // ✅ RESPOND IMMEDIATELY
     res.json({
       success: true,
@@ -288,8 +294,6 @@ app.post("/print", authRequired, (req, res) => {
   }
 });
 
-
-
 async function processPrintJob(printerCfg, body) {
   console.log("\n--- PRINT JOB START ---");
 
@@ -300,8 +304,8 @@ async function processPrintJob(printerCfg, body) {
       console.log("Mode: INVOICE");
       const printer = await createPrinter(printerCfg);
       if (!printer) return;
-     // await printInvoice(printer, body);
-      await printInvoice_custom(printer,body);
+      // await printInvoice(printer, body);
+      await printInvoice_custom(printer, body);
     } else if (body.isInvoiceData?.isKot) {
       // Handle ALL KOT cases with smart routing
       console.log("Mode: KOT ROUTING (KOT or ALL KOT or BOTH)");
@@ -437,13 +441,11 @@ async function printInvoice(printer, data) {
   //   printer.println("Tax-No: " + master.TinNo, "");
   // }
 
-
   if (master.BillPartyName !== "Cash" || master.BillPartyName !== "3") {
     printer.println("Add: " + master.Address1, "");
     printer.println("Contact: " + master.Ph, "");
     printer.println("Tax-No: " + master.TinNo, "");
   }
- 
 
   printer.drawLine();
 
@@ -493,7 +495,7 @@ async function printInvoice(printer, data) {
   printer.leftRight("Sub Total:", fmt(master.BillTotalField, 2));
   printer.leftRight("Disc Amt:", fmt(master.BillDiscAmtField, 2));
   printer.leftRight("Tax  Amt:", fmt(master.TItTaxAmt, 2));
- // printer.leftRight("Net Total:", fmt(master.BillNetTotalField, 2));
+  // printer.leftRight("Net Total:", fmt(master.BillNetTotalField, 2));
 
   printer.drawLine();
 
@@ -534,47 +536,33 @@ async function printInvoice(printer, data) {
   await printer.execute();
 }
 
-
 async function printInvoice_custom(printer, data) {
-  const {
-    company = [],
-    master = {},
-    table = [],
-  } = data;
+  const { company = [], master = {}, table = [] } = data;
 
   const comp = company[0] || {};
 
-  const fmt = (n, d = 2) =>
-    Number(n || 0).toFixed(d);
+  const fmt = (n, d = 2) => Number(n || 0).toFixed(d);
+
+  console.log("__dirname:", __dirname);
+  console.log("Public path:", path.join(__dirname, "public"));
 
   /* =========================
      1) LOGO (optional)
   ========================= */
+
   printer.alignCenter();
 
-  if (data.logo) {
-    try {
-      const logoPath = await downloadImage(data.logo);
-      await printer.printImage(logoPath);
-      printer.newLine();
-    } catch (e) {
-      console.log("Logo error:", e.message);
-    }
+  const logo = await prepareLogo();
+
+  if (logo) {
+    printer.alignCenter();
+
+    await printer.printImage(logo);
+
+    printer.newLine(); // space AFTER logo only
   }
 
-//   if (data.logo) {
-//   try {
-//     const cleanedUrl = encodeURI(data.logo.trim());
-//     const logoPath = await downloadImage(cleanedUrl);
-//     await printer.printImage(logoPath);
-//     printer.newLine();
-//   } catch (e) {
-//     console.log("Logo error:", e.message);
-//   }
-// }
-
-
-   printer.newLine();
+  // printer.newLine();
 
   /* =========================
      2) COMPANY HEADER
@@ -582,7 +570,6 @@ async function printInvoice_custom(printer, data) {
   printer.bold(true);
   printer.println(comp.Name || "COMPANY NAME");
   printer.bold(false);
-
 
   if (comp.Place) printer.println(comp.Place);
   if (comp.Ph) printer.println("Ph : " + comp.Ph);
@@ -602,12 +589,12 @@ async function printInvoice_custom(printer, data) {
 
   printer.leftRight(
     "Bill No : " + (master.BillNo ?? ""),
-    "Date : " + (master.BillDate || "")
+    "Date : " + (master.BillDate || ""),
   );
 
   printer.leftRight(
     "Party : " + (master.BillPartyName || "Cash"),
-    "Time : " + (master.BillTime || "")
+    "Time : " + (master.BillTime || ""),
   );
 
   printer.drawLine();
@@ -622,8 +609,6 @@ async function printInvoice_custom(printer, data) {
   //   { text: "Rate", cols: 10, align: "RIGHT", bold: true },
   //   { text: "Net", cols: 10, align: "RIGHT", bold: true },
   // ]);
-
-
 
   printer.tableCustom([
     { text: "#", align: "LEFT", cols: 3, bold: true },
@@ -640,9 +625,8 @@ async function printInvoice_custom(printer, data) {
       bold: true,
     },
     { text: "Rate", align: "RIGHT", cols: 10, bold: true },
-    { text: "Net",  align: "RIGHT", cols: 10, bold: true },
+    { text: "Net", align: "RIGHT", cols: 10, bold: true },
   ]);
-
 
   printer.drawLine();
 
@@ -662,9 +646,7 @@ async function printInvoice_custom(printer, data) {
   //   ]);
   // });
 
-
-
-    table.forEach((it, i) => {
+  table.forEach((it, i) => {
     printer.tableCustom([
       { text: i + 1, cols: 3, align: "LEFT" },
       {
@@ -677,12 +659,11 @@ async function printInvoice_custom(printer, data) {
     printer.tableCustom([
       { text: "", cols: 3 },
       { text: "", cols: 21 },
-      { text: it.qty ?? 0,      cols: 4, align: "CENTER" },
+      { text: it.qty ?? 0, cols: 4, align: "CENTER" },
       { text: fmt(it.Rate1, 2), cols: 10, align: "RIGHT" },
       { text: fmt(it.total, 2), cols: 10, align: "RIGHT" },
     ]);
   });
-
 
   printer.drawLine();
 
@@ -715,7 +696,6 @@ async function printInvoice_custom(printer, data) {
 
   await printer.execute();
 }
-
 
 // ALL KOT PRINT
 
@@ -1269,7 +1249,6 @@ function findPrinterByIp(ip) {
   );
 }
 
-
 function attachPrinterToKotItems(body) {
   const tableMap = {};
 
@@ -1298,7 +1277,6 @@ function attachPrinterToKotItems(body) {
   return body;
 }
 
-
 /* ===============================
    API : PRINTERS IN APP
 ================================ */
@@ -1316,12 +1294,9 @@ app.get("/api/printers_app", async (req, res) => {
   res.json({ printers: result });
 });
 
-
 function savePrinters(printers) {
   safeWrite(PRINTER_FILE, { printers });
 }
-
-
 
 function safeWrite(file, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2));
@@ -1337,15 +1312,15 @@ function safeWrite(file, data) {
 //   console.log("Body type:", typeof req.body);
 //   console.log("Body keys:", Object.keys(req.body || {}));
 //   console.log("=======================");
-  
+
 //   const { printerName, printerIp, role } = req.body;
-  
+
 //   // More detailed logging
 //   console.log("Parsed values:");
 //   console.log("printerName:", printerName, "Type:", typeof printerName);
 //   console.log("printerIp:", printerIp, "Type:", typeof printerIp);
 //   console.log("role:", role, "Type:", typeof role);
-  
+
 //   // Your existing validation...
 //   if (!printerName || !printerIp || !role) {
 //     console.log("MISSING FIELDS DETECTED!");
@@ -1354,12 +1329,12 @@ function safeWrite(file, data) {
 //       required: ["printerName", "printerIp", "role"],
 //       received: {
 //         printerName: printerName || "undefined",
-//         printerIp: printerIp || "undefined", 
+//         printerIp: printerIp || "undefined",
 //         role: role || "undefined"
 //       }
 //     });
 //   }
-    
+
 //     // Validate IP address format
 //     const ipRegex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
 //     if (!ipRegex.test(printerIp)) {
@@ -1367,20 +1342,20 @@ function safeWrite(file, data) {
 //         error: "Invalid IP address format"
 //       });
 //     }
-    
+
 //     // Check if printer name already exists
-//     const existingByName = printers.find(p => 
+//     const existingByName = printers.find(p =>
 //       p.printerName.toLowerCase() === printerName.toLowerCase()
 //     );
-    
+
 //     if (existingByName) {
 //       // Update existing printer if name matches
 //       existingByName.printerIp = printerIp;
 //       existingByName.role = role;
 //       existingByName.lastSeen = new Date().toISOString();
-      
+
 //       console.log("Updated existing printer:", printerName);
-      
+
 //       return res.json({
 //         status: "success",
 //         message: "Printer updated successfully",
@@ -1388,7 +1363,7 @@ function safeWrite(file, data) {
 //         printer: existingByName
 //       });
 //     }
-    
+
 //     // Check if IP already exists (prevent duplicates)
 //     const existingByIp = printers.find(p => p.printerIp === printerIp);
 //     if (existingByIp) {
@@ -1400,7 +1375,7 @@ function safeWrite(file, data) {
 //         }
 //       });
 //     }
-    
+
 //     // Create new printer object
 //     const newPrinter = {
 //       printerName,
@@ -1410,19 +1385,19 @@ function safeWrite(file, data) {
 //       createdAt: new Date().toISOString(),
 //       lastSeen: new Date().toISOString()
 //     };
-    
+
 //     // Add to printers array
 //     printers.push(newPrinter);
-    
+
 //     console.log("Registered new printer:", newPrinter);
-    
+
 //     res.status(201).json({
 //       status: "success",
 //       message: "Printer registered successfully",
 //       action: "created",
 //       printer: newPrinter
 //     });
-    
+
 //   } catch (error) {
 //     console.error("Error setting printer:", error);
 //     res.status(500).json({
@@ -1432,46 +1407,45 @@ function safeWrite(file, data) {
 //   }
 // });
 
-
-
-
 // Route for the root URL - serve your dashboard.html
-app.get('/', (req, res) => {
-    // If your HTML file is named dashboard.html
-    res.sendFile(path.join(__dirname, 'dashboard.html'));
-    // If your HTML file has a different name, change it accordingly
+app.get("/", (req, res) => {
+  // If your HTML file is named dashboard.html
+  res.sendFile(path.join(__dirname, "dashboard.html"));
+  // If your HTML file has a different name, change it accordingly
 });
 
 //-----------------------------------------------------------------------
-
 
 // ============== GET SET PRINTER =======================//
 
 // Update your existing /api/printer/save endpoint
 app.post("/api/printer/save_printers", authRequired, (req, res) => {
   const printers = loadPrinters();
- // console.log(req.body, "tttttttttttttt");
+  // console.log(req.body, "tttttttttttttt");
   const incomingData = req.body;
-  
+
   // Generate ID from printerName (keep consistent if updating)
   const generateIdFromName = (printerName, existingId = null) => {
     if (existingId) return existingId; // Keep existing ID when updating
-    
-    const cleanName = printerName.toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-]/g, '');
+
+    const cleanName = printerName
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "");
     const timestamp = Date.now().toString().slice(-6);
     return `${cleanName}-${timestamp}`;
   };
-  
+
   // Handle both single and array input
-  const printersToSave = Array.isArray(incomingData) ? incomingData : [incomingData];
+  const printersToSave = Array.isArray(incomingData)
+    ? incomingData
+    : [incomingData];
   const results = [];
-  
-  printersToSave.forEach(data => {
+
+  printersToSave.forEach((data) => {
     let fullPrinter;
     let isSimpleFormat = false;
-    
+
     // Check if it's in simple format (from /set_printer_app)
     if (data.printerName && data.printerIp) {
       isSimpleFormat = true;
@@ -1482,47 +1456,47 @@ app.post("/api/printer/save_printers", authRequired, (req, res) => {
         enabled: data.enabled !== undefined ? data.enabled : true,
         connection: {
           ip: data.printerIp,
-          port: data.port || 9100
+          port: data.port || 9100,
         },
         paper: {
           name: data.paperName || "RECIEPT(72mm)",
-          width: data.paperWidth || 576
+          width: data.paperWidth || 576,
         },
         printSettings: {
-          cut: data.cut !== undefined ? data.cut : true
-        }
+          cut: data.cut !== undefined ? data.cut : true,
+        },
       };
-    } 
+    }
     // Check if it's in full format
     else if (data.name && data.connection && data.connection.ip) {
       fullPrinter = { ...data };
       if (!fullPrinter.id) {
         fullPrinter.id = generateIdFromName(data.name);
       }
-    } 
+    }
     // Invalid format
     else {
       results.push({
         status: "error",
         error: "Invalid printer format",
-        data: data
+        data: data,
       });
       return;
     }
-    
+
     // Check if printer with same name already exists
     const existingIndexByName = printers.findIndex(
-      p => p.name.toLowerCase() === fullPrinter.name.toLowerCase()
+      (p) => p.name.toLowerCase() === fullPrinter.name.toLowerCase(),
     );
-    
+
     // Check if printer with same IP already exists (optional)
     const existingIndexByIp = printers.findIndex(
-      p => p.connection.ip === fullPrinter.connection.ip
+      (p) => p.connection.ip === fullPrinter.connection.ip,
     );
-    
+
     let action = "created";
     let existingIndex = -1;
-    
+
     // Priority 1: Update by name (if same printer name exists)
     if (existingIndexByName >= 0) {
       existingIndex = existingIndexByName;
@@ -1536,44 +1510,140 @@ app.post("/api/printer/save_printers", authRequired, (req, res) => {
     //   action = "updated";
     //   fullPrinter.id = printers[existingIndex].id;
     // }
-    
+
     if (existingIndex >= 0) {
       // Update existing printer
       printers[existingIndex] = fullPrinter;
-     // console.log(`Updated printer "${fullPrinter.name}" (IP: ${fullPrinter.connection.ip})`);
+      // console.log(`Updated printer "${fullPrinter.name}" (IP: ${fullPrinter.connection.ip})`);
     } else {
       // Add new printer
       printers.push(fullPrinter);
-     // console.log(`Created new printer "${fullPrinter.name}" (IP: ${fullPrinter.connection.ip})`);
+      // console.log(`Created new printer "${fullPrinter.name}" (IP: ${fullPrinter.connection.ip})`);
     }
-    
+
     results.push({
       status: "success",
       action: action,
-      printer: fullPrinter
+      printer: fullPrinter,
     });
   });
-  
+
   // Save all changes
   savePrinters(printers);
-  
+
   // Check if there were any errors
-  const hasErrors = results.some(r => r.status === "error");
-  
+  const hasErrors = results.some((r) => r.status === "error");
+
   if (hasErrors) {
     return res.status(207).json({
       success: true,
       message: `Processed with some errors`,
-      results: results
+      results: results,
     });
   }
-  
+
   res.json({
     success: true,
     message: `Successfully saved ${results.length} printer(s)`,
-    results: results
+    results: results,
   });
 });
+
+// async function prepareLogo() {
+//   try {
+
+//     // if already resized, use it
+//     if (fs.existsSync(logoResized)) {
+//       return logoResized;
+//     }
+
+//     // resize logo
+//     await sharp(logoOriginal)
+//       .resize({
+//         width: 300,        // best centered width
+//         fit: "contain",
+//         background: "white"
+//       })
+//       .toFile(logoResized);
+
+//     return logoResized;
+
+//   } catch (error) {
+//     console.log("Logo resize error:", error.message);
+//     return logoOriginal;
+//   }
+// }
+
+// find logo from public folder
+
+// resize logo for thermal printer
+
+function getLogoPath() {
+  const files = fs.readdirSync(PUBLIC_FOLDER);
+
+  for (let file of files) {
+    if (allowedExt.includes(path.extname(file).toLowerCase())) {
+      return path.join(PUBLIC_FOLDER, file);
+    }
+  }
+
+  return null;
+}
+
+async function prepareLogo() {
+
+  try {
+
+    // find logo automatically
+    const files = fs.readdirSync(PUBLIC_FOLDER);
+
+    const allowedExt = [".png", ".jpg", ".jpeg", ".webp", ".bmp"];
+
+    let inputPath = null;
+
+    for (let file of files) {
+
+      if (allowedExt.includes(path.extname(file).toLowerCase())) {
+
+        inputPath = path.join(PUBLIC_FOLDER, file);
+        break;
+      }
+    }
+
+    if (!inputPath) {
+      console.log("No logo found in public folder");
+      return null;
+    }
+
+    // resize and fix spacing
+    await sharp(inputPath)
+      .flatten({ background: "#FFFFFF" })
+      .trim()
+      .resize({
+        width: 320,
+        fit: "contain",
+        background: "#FFFFFF"
+      })
+      .extend({
+        top: 0,
+        bottom: 8,
+        left: 0,
+        right: 0,
+        background: "#FFFFFF"
+      })
+      .png()
+      .toFile(RESIZED_LOGO);
+
+    return RESIZED_LOGO;
+
+  }
+  catch (err) {
+
+    console.log("Logo fix error:", err.message);
+    return null;
+
+  }
+}
 
 
 /* ===============================
