@@ -1,6 +1,7 @@
 # Node / npm
 node_modules/
 package-lock.json
+printer.json
 
 # Environment files
 .env

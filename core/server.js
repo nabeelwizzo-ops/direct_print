@@ -10,12 +10,14 @@ const net = require("net");
 
 const { ThermalPrinter, PrinterTypes } = require("node-thermal-printer");
 
-// your public folder
-console.log("__dirname:", __dirname);
+
 
 const PUBLIC_FOLDER = path.join(__dirname, "..", "public");
 
-console.log("Correct public path:", PUBLIC_FOLDER);
+// #######----------------CUSTOM_INVOICE enable this Log----------######
+// your public folder
+// console.log("__dirname:", __dirname);
+// console.log("Correct public path:", PUBLIC_FOLDER);
 
 // resized output file
 const RESIZED_LOGO = path.join(PUBLIC_FOLDER, "logo_print.png");
