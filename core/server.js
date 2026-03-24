@@ -8,8 +8,7 @@ const path = require("path");
 const cors = require("cors");
 const net = require("net");
 
-const { Resvg } = require("@resvg/resvg-js");
-const { createCanvas, loadImage } = require("canvas");
+const { Resvg } = require('@resvg/resvg-js');
 
 const { ThermalPrinter, PrinterTypes } = require("node-thermal-printer");
 
@@ -1808,7 +1807,6 @@ async function prepareLogo() {
 
 async function printArabicAsImage_Svg(printer, text) {
   try {
-    // 🧠 SVG with proper Arabic rendering
     const svg = `
     <svg width="576" height="300">
       <style>
@@ -1823,25 +1821,12 @@ async function printArabicAsImage_Svg(printer, text) {
     </svg>
     `;
 
-    // 🔄 Convert SVG → PNG buffer
+    // 🔄 SVG → PNG
     const resvg = new Resvg(svg);
-    const pngData = resvg.render();
-    const pngBuffer = pngData.asPng();
+    const pngBuffer = resvg.render().asPng();
 
-    // 🖼 Convert buffer → image (canvas)
-    const img = await loadImage(pngBuffer);
-
-    const canvas = createCanvas(img.width, img.height);
-    const ctx = canvas.getContext("2d");
-
-    // White background (important for thermal printers)
-    ctx.fillStyle = "#FFFFFF";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    ctx.drawImage(img, 0, 0);
-
-    // 🎯 Send to printer
-    await printer.printImageBuffer(canvas.toBuffer("image/png"));
+    // 🎯 Direct print (NO canvas)
+    await printer.printImageBuffer(pngBuffer);
 
   } catch (err) {
     console.error("Arabic print error:", err);
