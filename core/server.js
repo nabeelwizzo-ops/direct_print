@@ -1243,9 +1243,66 @@ app.post("/testprint", authRequired, (req, res) => {
   }
 });
 
+// async function test_processPrintJob(printerCfg, body) {
+//   console.log(`\n--- PRINT JOB START (${printerCfg.name}) ---`);
+//   console.log(`--- ROLE: ${printerCfg.role} ---`);
+
+//   try {
+//     const printer = new ThermalPrinter({
+//       type: PrinterTypes.EPSON,
+//       interface: `tcp://${printerCfg.connection.ip}:${printerCfg.connection.port}`,
+//       options: { timeout: 15000 },
+//     });
+
+//     const connected = await printer.isPrinterConnected();
+//     console.log(`[${printerCfg.name}] Connected:`, connected);
+
+//     if (!connected) {
+//       console.log(`[${printerCfg.name}] ❌ Printer offline`);
+//       return;
+//     }
+
+//     // 🔀 ROLE BASED TEXT SELECTION
+//     let textToPrint = "";
+
+//     if (printerCfg.role === "CASHIER") {
+//       textToPrint = body.invoiceText;
+//     } else if (printerCfg.role === "KITCHEN") {
+//       textToPrint = body.kotText;
+//     }
+
+//     if (!textToPrint || typeof textToPrint !== "string") {
+//       console.log(
+//         `[${printerCfg.name}] ❌ No text for role ${printerCfg.role}`,
+//       );
+//       return;
+//     }
+
+//     if (containsArabic(textToPrint)) {
+//       console.log(`[${printerCfg.name}] Mode: ARABIC IMAGE`);
+//       await printArabicAsImage(printer, textToPrint);
+//     } else {
+//       printer.println(textToPrint);
+//     }
+
+//     if (printerCfg.printSettings?.cut) {
+//       printer.cut();
+//     }
+
+//     await printer.execute();
+
+//     console.log(`[${printerCfg.name}] ✅ PRINT SUCCESS`);
+//   } catch (err) {
+//     console.error(`[${printerCfg.name}] ❌ PRINT FAILED:`, err.message);
+//   }
+
+//   console.log(`--- PRINT JOB END (${printerCfg.name}) ---\n`);
+// }
+
+// WRAP TEXT-------
+
 async function test_processPrintJob(printerCfg, body) {
   console.log(`\n--- PRINT JOB START (${printerCfg.name}) ---`);
-  console.log(`--- ROLE: ${printerCfg.role} ---`);
 
   try {
     const printer = new ThermalPrinter({
@@ -1255,33 +1312,33 @@ async function test_processPrintJob(printerCfg, body) {
     });
 
     const connected = await printer.isPrinterConnected();
-    console.log(`[${printerCfg.name}] Connected:`, connected);
 
     if (!connected) {
       console.log(`[${printerCfg.name}] ❌ Printer offline`);
       return;
     }
 
-    // 🔀 ROLE BASED TEXT SELECTION
-    let textToPrint = "";
+    // 🔥 NEW LOGIC
+    if (body.bitmap) {
+      console.log(`[${printerCfg.name}] Printing BITMAP`);
 
-    if (printerCfg.role === "CASHIER") {
-      textToPrint = body.invoiceText;
-    } else if (printerCfg.role === "KITCHEN") {
-      textToPrint = body.kotText;
-    }
+      const imageBuffer = Buffer.from(body.bitmap, "base64");
+      await printer.printImageBuffer(imageBuffer);
 
-    if (!textToPrint || typeof textToPrint !== "string") {
-      console.log(
-        `[${printerCfg.name}] ❌ No text for role ${printerCfg.role}`,
-      );
-      return;
-    }
-
-    if (containsArabic(textToPrint)) {
-      console.log(`[${printerCfg.name}] Mode: ARABIC IMAGE`);
-      await printArabicAsImage(printer, textToPrint);
     } else {
+      let textToPrint = "";
+
+      if (printerCfg.role === "CASHIER") {
+        textToPrint = body.invoiceText;
+      } else if (printerCfg.role === "KITCHEN") {
+        textToPrint = body.kotText;
+      }
+
+      if (!textToPrint) {
+        console.log(`[${printerCfg.name}] ❌ No text`);
+        return;
+      }
+
       printer.println(textToPrint);
     }
 
@@ -1292,14 +1349,11 @@ async function test_processPrintJob(printerCfg, body) {
     await printer.execute();
 
     console.log(`[${printerCfg.name}] ✅ PRINT SUCCESS`);
+
   } catch (err) {
     console.error(`[${printerCfg.name}] ❌ PRINT FAILED:`, err.message);
   }
-
-  console.log(`--- PRINT JOB END (${printerCfg.name}) ---\n`);
 }
-
-// WRAP TEXT-------
 
 function wrapText(text, width) {
   const words = text.split(" ");
