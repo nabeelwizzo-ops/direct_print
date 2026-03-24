@@ -10,8 +10,6 @@ const net = require("net");
 
 const { ThermalPrinter, PrinterTypes } = require("node-thermal-printer");
 
-
-
 const PUBLIC_FOLDER = path.join(__dirname, "..", "public");
 
 // #######----------------CUSTOM_INVOICE enable this Log----------######
@@ -304,24 +302,36 @@ async function processPrintJob(printerCfg, body) {
 
     if (body.isInvoiceData?.isInvoice) {
       console.log("Mode: INVOICE");
+      const lang = body.lang_mode;
+      console.log("Lang: INVOICE", lang);
       const printer = await createPrinter(printerCfg);
       if (!printer) return;
-       await printInvoice(printer, body);
-      
 
-     // await printInvoice_custom(printer, body);
-     
+      if (lang == "ARABIC") {
+        console.log("aaaaaaaaaaaa");
+        await printInvoice_arabic(printer, body);
+      } else {
+        console.log("ccccccccccccccccc");
+        await printInvoice(printer, body);
+      }
+
+      // await printInvoice_custom(printer, body);
     } else if (body.isInvoiceData?.isKot) {
       // Handle ALL KOT cases with smart routing
       console.log("Mode: KOT ROUTING (KOT or ALL KOT or BOTH)");
       await routeKotToPrinters(body);
       return; // Return here since routeKotToPrinters handles its own printing
     } else if (body.text) {
-      console.log("Mode: TEXT");
       const printer = await createPrinter(printerCfg);
       if (!printer) return;
 
-      printer.println(body.text);
+      if (containsArabic(body.text)) {
+        console.log("Mode: ARABIC IMAGE TEXT");
+        await printArabicAsImage(printer, body.text);
+      } else {
+        console.log("Mode: TEXT");
+        printer.println(body.text);
+      }
       printer.cut();
       await printer.execute();
     } else {
@@ -368,7 +378,7 @@ function fmt(val, digits = 2) {
 }
 
 async function printInvoice(printer, data) {
-   console.log("✅ printInvoice");
+  console.log("✅ printInvoice");
   const {
     company = [],
     master = {},
@@ -542,8 +552,74 @@ async function printInvoice(printer, data) {
   await printer.execute();
 }
 
+/* ===============================
+   ARABIC INVOICE PRINTER (IMAGE-BASED)
+================================ */
+async function printInvoice_arabic(printer, data) {
+  console.log("✅ printInvoice_arabic (IMAGE-BASED)");
+  const { company = [], master = {}, table = [], isInvoiceData = {} } = data;
+  const comp = company[0] || {};
+
+  const typ = data?.typ ?? "";
+  const qr_data = data?.qrData ?? "";
+  const logo = data?.logo ?? "";
+  const bill_form = data?.bill_form ?? "SALES B2B";
+  const tax_mode = data?.tax_mode ?? "GST";
+
+  printer.alignCenter();
+
+  // 1. LOGO
+  if (logo) {
+    try {
+      const logoPath = await downloadImage(logo);
+      await printer.printImage(logoPath);
+      printer.newLine();
+    } catch (e) {
+      console.error("Logo print failed:", e.message);
+    }
+  }
+
+  // 2. COMPANY HEADER
+    console.log("ssssss",comp.Name)
+  if (containsArabic(comp.Name)) {
+     console.log("ssssss",comp.Name)
+    await printArabicAsImage(printer, comp.Name || "الشركة", "center", 40);
+    if (comp.Place) await printArabicAsImage(printer, comp.Place, "center", 35);
+  } else {
+    await printArabicAsImage(printer, comp.Name || "SHOP", "center", 30);
+    if (comp.Place) await printArabicAsImage(printer, comp.Place, "center", 30);
+  }
+
+  if (comp.Ph) await printArabicAsImage(printer, "هاتف: " + comp.Ph, "center", 40);
+
+  // 3. TITLE
+  let title = "فاتورة ضريبية";
+  if (bill_form === "SALES B2B") title = "فاتورة ضريبية";
+  else if (bill_form === "SALES B2C") title = "فاتورة ضريبية مبسطة";
+  else if (bill_form === "SALES RETURN") title = "اشعار دائن";
+  await printArabicAsImage(printer, title, "center", 45);
+
+  if (comp.gst) {
+    const taxLabel = tax_mode === "GST" ? "رقم ضريبة القيمة المضافة: " : "الرقم العطري: ";
+    await printArabicAsImage(printer, taxLabel + comp.gst, "center", 25);
+  }
+
+  printer.drawLine();
+
+  // 9. FOOTER
+  await printArabicAsImage(printer, "شكراً لتسوقكم معنا!", "center", 24);
+
+  printer.newLine();
+  printer.cut();
+  printer.beep();
+  printer.beep();
+  printer.beep();
+
+  await printer.execute();
+}
+
 async function printInvoice_custom(printer, data) {
-   console.log("✅ printInvoice_custom");
+  console.log("✅ printInvoice_custom");
   const { company = [], master = {}, table = [] } = data;
 
   const comp = company[0] || {};
@@ -603,6 +679,8 @@ async function printInvoice_custom(printer, data) {
     "Party : " + (master.BillPartyName || "Cash"),
     "Time : " + (master.BillTime || ""),
   );
+
+  printer.leftRight("Table No : " + (master.table ?? ""));
 
   printer.drawLine();
 
@@ -743,12 +821,12 @@ async function all_kot_print(printer, data) {
     {
       text: "KOT NO: " + (master.OrderNo ?? "0"),
       align: "LEFT",
-      cols: 24,
+      cols: 22,
     },
     {
       text: "Date: " + (master.BillDate || "") + " " + (master.BillTime || ""),
       align: "RIGHT",
-      cols: 24,
+      cols: 22,
     },
   ]);
 
@@ -852,12 +930,12 @@ async function kot_print(printer, data) {
     {
       text: "KOT NO: " + (master.OrderNo ?? "0"),
       align: "LEFT",
-      cols: 24,
+      cols: 22,
     },
     {
       text: "Date: " + (master.BillDate || "") + " " + (master.BillTime || ""),
       align: "RIGHT",
-      cols: 24,
+      cols: 22,
     },
   ]);
 
@@ -959,35 +1037,107 @@ async function downloadImage(url) {
 }
 
 /*********************************
- * ARABIC IMAGE PRINT (WASM)
+ * ARABIC DETECTION + IMAGE PRINT
  *********************************/
-// async function printArabicAsImage(printer, text) {
-//   const svg = `
-// <svg width="576" height="120" xmlns="http://www.w3.org/2000/svg">
-//   <style>
-//     text {
-//       font-size: 28px;
-//       font-family: Arial;
-//       direction: rtl;
-//       unicode-bidi: bidi-override;
-//       fill: black;
-//     }
-//   </style>
-//   <text x="560" y="70" text-anchor="end">${text}</text>
-// </svg>
-// `;
+function containsArabic(text = "") {
+  return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(text);
+}
 
-//   const img = await sharp(Buffer.from(svg)).png().toBuffer();
+async function printArabicAsImage(printer, text, align = "centre", fontSize = 24) {
+  if (!text || text.trim() === "") {
+    printer.newLine();
+    return;
+  }
+  const width = 576; // standard 80mm thermal printer width in pixels
 
-//   printer.alignCenter();
-//   printer.printImageBuffer(img);
-//   printer.cut();
-//   await printer.execute();
-// }
+  // Build Pango markup — sharp uses Pango for text rendering
+  // which properly shapes Arabic letters (connects them correctly)
 
-// function containsArabic(text = "") {
-//   return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(text);
-// }
+  const escapedText = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  const pangoMarkup = `<span font="Arial ${fontSize}">${escapedText}</span>`;
+
+  const img = await sharp({
+    text: {
+      text: pangoMarkup,
+      width: width - 40, // leave some margin
+      rgba: true,
+      align: align === "center" ? "centre" : align,
+    },
+  })
+    .flatten({ background: "#FFFFFF" })
+    .png()
+    .toBuffer();
+
+  console.log(`[ArabicImage] Rendered "${text.substring(0, 20)}..." Buffer: ${img.length} bytes`);
+  printer.alignCenter();
+  await printer.printImageBuffer(img);
+}
+
+/**
+ * HELPER: Print a row of columns as a single image (for table headers/rows)
+ */
+async function printArabicRow(printer, columns, fontSize = 20) {
+  const width = 576;
+  const height = fontSize + 20;
+
+  // Composite multiple text blocks onto one row image
+  const layers = (
+    await Promise.all(
+      columns.map(async (col) => {
+        let text = String(col.text || "").trim();
+        if (text === "") return null; // Skip empty columns
+
+        const escapedText = text
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+
+        const textBuf = await sharp({
+          text: {
+            text: `<span font="Arial ${fontSize}">${escapedText}</span>`,
+            width: col.width,
+            height: height,
+            rgba: true,
+            align: col.align === "center" ? "centre" : col.align,
+          },
+        })
+          .png()
+          .toBuffer();
+
+        return {
+          input: textBuf,
+          left: col.left || 0,
+          top: 0,
+        };
+      }),
+    )
+  ).filter((layer) => layer !== null);
+
+  if (layers.length === 0) {
+    // If no columns have text, skip rendering the image
+    return;
+  }
+
+  const finalImg = await sharp({
+    create: {
+      width: width,
+      height: height,
+      channels: 4,
+      background: { r: 255, g: 255, b: 255, alpha: 1 },
+    },
+  })
+    .composite(layers)
+    .png()
+    .toBuffer();
+
+  console.log(`[ArabicRow] Rendered composite image. Buffer: ${finalImg.length} bytes`);
+  printer.alignCenter();
+  await printer.printImageBuffer(finalImg);
+}
 
 //New
 
@@ -1128,7 +1278,12 @@ async function test_processPrintJob(printerCfg, body) {
       return;
     }
 
-    printer.println(textToPrint);
+    if (containsArabic(textToPrint)) {
+      console.log(`[${printerCfg.name}] Mode: ARABIC IMAGE`);
+      await printArabicAsImage(printer, textToPrint);
+    } else {
+      printer.println(textToPrint);
+    }
 
     if (printerCfg.printSettings?.cut) {
       printer.cut();
@@ -1598,9 +1753,7 @@ function getLogoPath() {
 }
 
 async function prepareLogo() {
-
   try {
-
     // find logo automatically
     const files = fs.readdirSync(PUBLIC_FOLDER);
 
@@ -1609,9 +1762,7 @@ async function prepareLogo() {
     let inputPath = null;
 
     for (let file of files) {
-
       if (allowedExt.includes(path.extname(file).toLowerCase())) {
-
         inputPath = path.join(PUBLIC_FOLDER, file);
         break;
       }
@@ -1629,26 +1780,22 @@ async function prepareLogo() {
       .resize({
         width: 320,
         fit: "contain",
-        background: "#FFFFFF"
+        background: "#FFFFFF",
       })
       .extend({
         top: 0,
         bottom: 8,
         left: 0,
         right: 0,
-        background: "#FFFFFF"
+        background: "#FFFFFF",
       })
       .png()
       .toFile(RESIZED_LOGO);
 
     return RESIZED_LOGO;
-
-  }
-  catch (err) {
-
+  } catch (err) {
     console.log("Logo fix error:", err.message);
     return null;
-
   }
 }
 
