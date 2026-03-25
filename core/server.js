@@ -888,7 +888,7 @@ async function kot_print(printer, data) {
     {
       text: "KOT NO: " + (master.OrderNo ?? "0"),
       align: "LEFT",
-      cols: 21,
+      cols: 25,
     },
   ]);
 
@@ -899,7 +899,7 @@ async function kot_print(printer, data) {
     {
       text: "Date: " + (master.BillDate || "") + " " + (master.BillTime || ""),
       align: "RIGHT",
-      cols: 21,
+      cols: 25,
     },
   ]);
 
