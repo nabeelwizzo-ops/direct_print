@@ -835,6 +835,134 @@ async function all_kot_print(printer, data) {
   // await printer.execute();
 }
 
+// async function kot_print(printer, data) {
+//   const { company = [], master = {}, kotTableData = [], logo = "" } = data;
+
+//   /* =========================
+//      LOGO (optional)
+//   ========================= */
+//   printer.alignCenter();
+
+//   if (logo) {
+//     try {
+//       const logoPath = await downloadImage(logo);
+//       await printer.printImage(logoPath);
+//       printer.newLine();
+//     } catch (e) {
+//       console.log("Logo print error:", e.message);
+//     }
+//   }
+
+//   /* =========================
+//      TITLE
+//   ========================= */
+//   printer.setTextDoubleHeight();
+//   printer.setTextDoubleWidth();
+//   printer.bold(true);
+//   printer.println(" KOT ");
+//   printer.bold(false);
+//   printer.setTextNormal();
+
+//   printer.drawLine();
+
+//   /* =========================
+//      KOT NO + DATE (same line)
+//   ========================= */
+//   printer.tableCustom([
+//     {
+//       text: "KOT NO: " + (master.OrderNo ?? "0"),
+//       align: "LEFT",
+//       cols: 22,
+//     },
+//     {
+//       text: "Date: " + (master.BillDate || "") + " " + (master.BillTime || ""),
+//       align: "RIGHT",
+//       cols: 22,
+//     },
+//   ]);
+
+
+
+//   /* =========================
+//      STAFF & TABLE
+//   ========================= */
+//   printer.alignLeft();
+//   printer.println("STAFF: " + (master.Lorry || "NIL"));
+//   printer.println("TABLE NO: " + (master.table || "0"));
+
+//   printer.drawLine();
+
+//   /* =========================
+//      HEADER
+//      48 columns split: 3 | 37 | 8
+//   ========================= */
+//   printer.bold(true);
+//   printer.tableCustom([
+//     { text: "#", align: "LEFT", cols: 3 },
+//     { text: "Item Name", align: "LEFT", cols: 37 },
+//     { text: "Qty", align: "CENTER", cols: 8 },
+//   ]);
+//   printer.bold(false);
+
+//   printer.drawLine();
+
+//   /* =========================
+//      ITEMS (single row per item)
+//   ========================= */
+//   kotTableData.forEach((it, i) => {
+//     printer.tableCustom([
+//       {
+//         text: String(i + 1),
+//         align: "LEFT",
+//         cols: 3,
+//       },
+//       {
+//         text: String(it.itemname || "").substring(0, 37),
+//         align: "LEFT",
+//         cols: 37,
+//       },
+//       {
+//         text: String(it.qty ?? 0),
+//         align: "CENTER",
+//         cols: 8,
+//       },
+//     ]);
+//   });
+
+//   printer.drawLine();
+//   printer.newLine();
+
+//   /* =========================
+//      CUT + BEEP
+//   ========================= */
+//   printer.cut();
+//   printer.beep();
+//   printer.beep();
+
+//   // await printer.execute();
+// }
+
+// async function downloadImage(url) {
+//   const filePath = path.join(__dirname, "logo.png");
+
+//   const response = await axios({
+//     url,
+//     method: "GET",
+//     responseType: "stream",
+//   });
+
+//   await new Promise((resolve, reject) => {
+//     const stream = fs.createWriteStream(filePath);
+//     response.data.pipe(stream);
+//     stream.on("finish", resolve);
+//     stream.on("error", reject);
+//   });
+
+//   return filePath;
+// }
+
+
+
 async function kot_print(printer, data) {
   const { company = [], master = {}, kotTableData = [], logo = "" } = data;
 
@@ -859,77 +987,70 @@ async function kot_print(printer, data) {
   printer.setTextDoubleHeight();
   printer.setTextDoubleWidth();
   printer.bold(true);
-  printer.println(" KOT ");
+  printer.println("KOT");
   printer.bold(false);
   printer.setTextNormal();
 
   printer.drawLine();
 
   /* =========================
-     KOT NO + DATE (same line)
+     KOT NO (BIG FONT)
   ========================= */
-  // printer.tableCustom([
-  //   {
-  //     text: "KOT NO: " + (master.OrderNo ?? "0"),
-  //     align: "LEFT",
-  //     cols: 22,
-  //   },
-  //   {
-  //     text: "Date: " + (master.BillDate || "") + " " + (master.BillTime || ""),
-  //     align: "RIGHT",
-  //     cols: 22,
-  //   },
-  // ]);
+  printer.bold(true);
+  printer.setTextDoubleHeight();
+  printer.setTextDoubleWidth();
 
-  // Increase font size
-  printer.setTextSize(2, 2);
+  printer.alignLeft();
+  printer.println("KOT NO: " + (master.OrderNo ?? "0"));
 
-  printer.tableCustom([
-    {
-      text: "KOT NO: " + (master.OrderNo ?? "0"),
-      align: "LEFT",
-      cols: 25,
-    },
-  ]);
+  printer.setTextNormal();
+  printer.bold(false);
 
-  // Reset font size back to normal
-  printer.setTextSize(1, 1);
+  /* =========================
+     DATE (RIGHT SIDE)
+  ========================= */
+  printer.alignRight();
 
-  printer.tableCustom([
-    {
-      text: "Date: " + (master.BillDate || "") + " " + (master.BillTime || ""),
-      align: "RIGHT",
-      cols: 18,
-    },
-  ]);
+  const shortDate =
+    (master.BillDate || "") + " " +
+    (master.BillTime || "");
+
+  printer.println("Date: " + shortDate);
+
+  printer.alignLeft();
+  printer.drawLine();
 
   /* =========================
      STAFF & TABLE
   ========================= */
-  printer.alignLeft();
   printer.println("STAFF: " + (master.Lorry || "NIL"));
   printer.println("TABLE NO: " + (master.table || "0"));
 
   printer.drawLine();
 
   /* =========================
-     HEADER
-     48 columns split: 3 | 37 | 8
+     HEADER (BIGGER FONT)
   ========================= */
   printer.bold(true);
+  printer.setTextDoubleHeight();
+
   printer.tableCustom([
     { text: "#", align: "LEFT", cols: 3 },
     { text: "Item Name", align: "LEFT", cols: 37 },
     { text: "Qty", align: "CENTER", cols: 8 },
   ]);
+
+  printer.setTextNormal();
   printer.bold(false);
 
   printer.drawLine();
 
   /* =========================
-     ITEMS (single row per item)
+     ITEMS (CLEAR & BOLD)
   ========================= */
   kotTableData.forEach((it, i) => {
+    printer.bold(true);
+
     printer.tableCustom([
       {
         text: String(i + 1),
@@ -947,6 +1068,8 @@ async function kot_print(printer, data) {
         cols: 8,
       },
     ]);
+
+    printer.bold(false);
   });
 
   printer.drawLine();
@@ -961,25 +1084,6 @@ async function kot_print(printer, data) {
 
   // await printer.execute();
 }
-
-// async function downloadImage(url) {
-//   const filePath = path.join(__dirname, "logo.png");
-
-//   const response = await axios({
-//     url,
-//     method: "GET",
-//     responseType: "stream",
-//   });
-
-//   await new Promise((resolve, reject) => {
-//     const stream = fs.createWriteStream(filePath);
-//     response.data.pipe(stream);
-//     stream.on("finish", resolve);
-//     stream.on("error", reject);
-//   });
-
-//   return filePath;
-// }
 
 async function downloadImage(url) {
   const filePath = path.join(__dirname, "logo.png");
