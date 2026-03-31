@@ -304,9 +304,9 @@ async function processPrintJob(printerCfg, body) {
       console.log("Mode: INVOICE");
       const printer = await createPrinter(printerCfg);
       if (!printer) return;
-      // await printInvoice(printer, body);
+       await printInvoice(printer, body);
 
-      await printInvoice_custom(printer, body);
+     // await printInvoice_custom(printer, body);
     } else if (body.isInvoiceData?.isKot) {
       // Handle ALL KOT cases with smart routing
       console.log("Mode: KOT ROUTING (KOT or ALL KOT or BOTH)");
