@@ -837,8 +837,8 @@ async function printInvoice_custom(printer, data) {
        FOOTER
     ========================= */
     printer.alignCenter();
-    printer.println("Thanks for your shopping");
-    printer.println("Visit Again");
+    printer.println("Thanks for your Visit");
+    printer.println("Have a Nice Day!");
 
     printer.newLine();
     printer.cut();
