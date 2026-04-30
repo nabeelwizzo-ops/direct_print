@@ -305,8 +305,7 @@ async function processPrintJob(printerCfg, body) {
       const printer = await createPrinter(printerCfg);
       if (!printer) return;
        await printInvoice(printer, body);
-
-     // await printInvoice_custom(printer, body);
+      //await printInvoice_custom(printer, body);
     } else if (body.isInvoiceData?.isKot) {
       // Handle ALL KOT cases with smart routing
       console.log("Mode: KOT ROUTING (KOT or ALL KOT or BOTH)");
@@ -546,9 +545,9 @@ async function printInvoice_custom2(printer, data) {
 
   //const comp = company[0] || {};
 
-  const comp = body.company?.[0] || {};
-  const master = body.master || {};
-  const table = body.table || [];
+  const comp = data.company?.[0] || {};
+  const master = data.master || {};
+  const table = data.table || [];
 
   const fmt = (n, d = 2) => Number(n || 0).toFixed(d);
 
@@ -837,8 +836,8 @@ async function printInvoice_custom(printer, data) {
        FOOTER
     ========================= */
     printer.alignCenter();
-    printer.println("Thanks for your Visit");
-    printer.println("Have a Nice Day!");
+     printer.println("Thanks for your Visit");
+  printer.println("We are adding consumed tax");
 
     printer.newLine();
     printer.cut();
