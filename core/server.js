@@ -995,6 +995,17 @@ async function all_kot_print2(printer, data) {
         },
       ]);
     });
+
+    const unitStr = String(
+      it.units || it.unit || it.Units || it.Unit || "",
+    ).trim();
+    if (unitStr) {
+      printer.tableCustom([
+        { text: "", align: "LEFT", cols: 3 },
+        { text: `[${unitStr}]`, align: "LEFT", cols: 37 },
+        { text: "", align: "CENTER", cols: 8 },
+      ]);
+    }
   });
 
   printer.drawLine();
@@ -1107,9 +1118,9 @@ async function all_kot_print(printer, data) {
     const qty = item.qty || 0;
     const unit = item.Typ || "";
 
-    console.log("ALL KOT", "===============");
-    console.log("itemName", itemName);
-    console.log("qty", qty);
+    // console.log("ALL KOT", "===============");
+    // console.log("itemName", itemName);
+    // console.log("qty", qty);
 
     // Match notes from kotTableData
     const kot = kotTableData.find(k =>
@@ -1619,78 +1630,96 @@ async function routeKotToPrinters(body) {
 
   body = attachPrinterToKotItems(body);
 
-  const printerWiseItems = {};
+  const isKot = body.isInvoiceData?.isKot;
+  const isALLKot = body.isInvoiceData?.isALLKot;
 
-  // Group by printer IP
-  body.kotTableData.forEach((item) => {
-    const ip = item.printer || item.printer_ip; // Try both fields
+  // 1️⃣ HANDLE KOT (Send individual items to respective Kitchen printers based on item IP)
+  if (isKot || (!isKot && !isALLKot)) {
+    console.log("📋 Processing KOT for Kitchen printers...");
+    const printerWiseItems = {};
 
-    if (!ip) {
-      console.log("❌ No printer IP found for item:", item.itemname);
-      return;
-    }
+    // Group by printer IP
+    (body.kotTableData || []).forEach((item) => {
+      const ip = item.printer || item.printer_ip; // Try both fields
 
-    if (!printerWiseItems[ip]) {
-      printerWiseItems[ip] = {
-        items: [],
-        printerCfg: findPrinterByIp(ip),
-      };
-    }
+      if (!ip) {
+        console.log("❌ No printer IP found for item:", item.itemname);
+        return;
+      }
 
-    printerWiseItems[ip].items.push(item);
-  });
+      if (!printerWiseItems[ip]) {
+        printerWiseItems[ip] = {
+          items: [],
+          printerCfg: findPrinterByIp(ip),
+        };
+      }
 
-  // Print per printer
-  for (const ip in printerWiseItems) {
-    const { items, printerCfg } = printerWiseItems[ip];
+      printerWiseItems[ip].items.push(item);
+    });
 
-    if (!printerCfg) {
-      console.log("❌ No printer configuration found for IP:", ip);
-      continue;
-    }
+    // Print per Kitchen printer
+    for (const ip in printerWiseItems) {
+      const { items, printerCfg } = printerWiseItems[ip];
 
-    console.log(
-      `🖨️ Printing ${items.length} items to ${printerCfg.name} (${ip})`,
-    );
+      if (!printerCfg) {
+        console.log("❌ No kitchen printer configuration found for IP:", ip);
+        continue;
+      }
 
-    try {
-      const printer = await createPrinter(printerCfg);
-      if (!printer) continue;
+      console.log(
+        `🖨️ Printing ${items.length} KOT items to ${printerCfg.name} (${ip})`,
+      );
 
-      const newBody = {
-        ...body,
-        kotTableData: items,
-      };
+      try {
+        const printer = await createPrinter(printerCfg);
+        if (!printer) continue;
 
-      // When BOTH isKot AND isALLKot are true, print BOTH formats
-      if (body.isInvoiceData?.isKot && body.isInvoiceData?.isALLKot) {
-        console.log(`📋 Printing BOTH KOT + ALL KOT for ${printerCfg.name}`);
+        const newBody = {
+          ...body,
+          kotTableData: items,
+        };
 
-        // Print KOT format
         await kot_print(printer, newBody);
-
-        // Add a separator between KOT and ALL KOT
-        printer.drawLine();
-        printer.newLine();
-
-        // Print ALL KOT format
-        await all_kot_print(printer, newBody);
+        await printer.execute();
+        console.log(`✅ KOT Printed successfully to ${printerCfg.name}`);
+      } catch (err) {
+        console.error(
+          `❌ Failed to print KOT to ${printerCfg.name}:`,
+          err.message,
+        );
       }
-      // When only ALL KOT is true
-      else if (body.isInvoiceData?.isALLKot) {
-        console.log(`📋 Printing ALL KOT format for ${printerCfg.name}`);
-        await all_kot_print(printer, newBody);
-      }
-      // When only KOT is true (or default case)
-      else {
-        console.log(`📋 Printing KOT format for ${printerCfg.name}`);
-        await kot_print(printer, newBody);
-      }
+    }
+  }
 
-      await printer.execute();
-      console.log(`✅ Printed successfully to ${printerCfg.name}`);
-    } catch (err) {
-      console.error(`❌ Failed to print to ${printerCfg.name}:`, err.message);
+  // 2️⃣ HANDLE ALL KOT (Send ALL KOT to CASHIER printer)
+  if (isALLKot) {
+    console.log("📋 Processing ALL KOT for CASHIER printer...");
+    const cashierPrinters = findCashierPrinters();
+
+    if (!cashierPrinters || cashierPrinters.length === 0) {
+      console.log("⚠️ No CASHIER printer found for ALL KOT printing!");
+    } else {
+      for (const cashierCfg of cashierPrinters) {
+        console.log(
+          `�️ Printing ALL KOT to CASHIER printer: ${cashierCfg.name} (${cashierCfg.connection.ip})`,
+        );
+
+        try {
+          const printer = await createPrinter(cashierCfg);
+          if (!printer) continue;
+
+          await all_kot_print(printer, body);
+          await printer.execute();
+          console.log(
+            `✅ ALL KOT Printed successfully to CASHIER printer: ${cashierCfg.name}`,
+          );
+        } catch (err) {
+          console.error(
+            `❌ Failed to print ALL KOT to CASHIER printer ${cashierCfg.name}:`,
+            err.message,
+          );
+        }
+      }
     }
   }
 }
@@ -1703,25 +1732,48 @@ function findPrinterByIp(ip) {
   );
 }
 
+function findCashierPrinters() {
+  const printers = loadPrinters();
+
+  return printers.filter((p) => p.enabled && p.role === "CASHIER");
+}
+
 function attachPrinterToKotItems(body) {
   const tableMap = {};
 
-  // Map item name -> printer_ip from the table array
+  // Map item name -> printer_ip & units from the table array
   if (body.table && Array.isArray(body.table)) {
     body.table.forEach((t) => {
-      const itemName = (t.ItemNameTextField || "").trim();
-      if (itemName && t.printer_ip) {
-        tableMap[itemName] = t.printer_ip;
+      const itemName = (t.ItemNameTextField || t.itemname || "").trim();
+      const unitVal =
+        t.units ||
+        t.unit ||
+        t.Unit ||
+        t.Units ||
+        t.unitName ||
+        t.UnitName ||
+        t.item_unit ||
+        "";
+      if (itemName) {
+        tableMap[itemName] = {
+          printer_ip: t.printer_ip,
+          units: unitVal,
+        };
       }
     });
   }
 
-  // Inject printer into kot items
+  // Inject printer & units into kot items
   if (body.kotTableData && Array.isArray(body.kotTableData)) {
     body.kotTableData.forEach((k) => {
       const name = (k.itemname || "").trim();
       if (name && tableMap[name]) {
-        k.printer = tableMap[name];
+        if (tableMap[name].printer_ip) {
+          k.printer = tableMap[name].printer_ip;
+        }
+        if (!k.units && !k.unit && tableMap[name].units) {
+          k.units = tableMap[name].units;
+        }
       } else {
         console.log(`⚠️ No printer found for item: ${name}`);
       }
