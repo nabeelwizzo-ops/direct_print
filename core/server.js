@@ -304,11 +304,16 @@ async function processPrintJob(printerCfg, body) {
       console.log("Mode: INVOICE");
       const printer = await createPrinter(printerCfg);
       if (!printer) return;
-       await printInvoice(printer, body);
+      await printInvoice(printer, body);
       //await printInvoice_custom(printer, body);
     } else if (body.isInvoiceData?.isKot) {
       // Handle ALL KOT cases with smart routing
       console.log("Mode: KOT ROUTING (KOT or ALL KOT or BOTH)");
+      await routeKotToPrinters(body);
+      return; // Return here since routeKotToPrinters handles its own printing
+    } else if (body.isInvoiceData?.isALLKot) {
+      // Handle ALL KOT cases with smart routing
+      console.log("Mode: ALL KOT ROUTING ( ALL KOT)");
       await routeKotToPrinters(body);
       return; // Return here since routeKotToPrinters handles its own printing
     } else if (body.text) {
@@ -431,16 +436,6 @@ async function printInvoice(printer, data) {
   if (master.BillPartyName) {
     printer.println("Party   : " + master.BillPartyName);
   }
-  // if (master.BillPartyName !== "Cash") {
-  //   printer.println("Add: " + master.Address1, "");
-  //   printer.println("Contact: " + master.Ph, "");
-  //   printer.println("Tax-No: " + master.TinNo, "");
-  // }
-  // if (master.BillPartyName !== "3") {
-  //   printer.println("Add: " + master.Address1, "");
-  //   printer.println("Contact: " + master.Ph, "");
-  //   printer.println("Tax-No: " + master.TinNo, "");
-  // }
 
   if (master.BillPartyName !== "Cash" || master.BillPartyName !== "3") {
     printer.println("Add: " + master.Address1, "");
@@ -470,9 +465,35 @@ async function printInvoice(printer, data) {
   ]);
   printer.drawLine();
 
+  // table.forEach((it, i) => {
+  //   printer.tableCustom([
+  //     { text: i + 1, cols: 3, align: "LEFT" },
+  //     {
+  //       text: String(it.ItemNameTextField || "").substring(0, 30),
+  //       cols: 45,
+  //       align: "LEFT",
+  //     },
+  //   ]);
+
+  //   printer.tableCustom([
+  //     { text: "", cols: 3 },
+  //     { text: "", cols: 15 },
+  //     { text: it.qty ?? 0, cols: 3, align: "CENTER" },
+  //     { text: fmt(it.Rate1, 2), cols: 9, align: "RIGHT" },
+  //     { text: fmt(it.taxAmt, 2), cols: 9, align: "RIGHT" },
+  //     { text: fmt(it.total, 2), cols: 9, align: "RIGHT" },
+  //   ]);
+  // });
+
+  let slNo = 1;
+
   table.forEach((it, i) => {
+    if (parseFloat(it.qty || 0) <= 0) {
+      return; // skip this item
+    }
+
     printer.tableCustom([
-      { text: i + 1, cols: 3, align: "LEFT" },
+      { text: slNo++, cols: 3, align: "LEFT" },
       {
         text: String(it.ItemNameTextField || "").substring(0, 30),
         cols: 45,
@@ -580,7 +601,8 @@ async function printInvoice_custom2(printer, data) {
   printer.bold(false);
 
   if (comp.Place) printer.println(comp.Place);
-  if (comp.Ph) printer.println("Ph : " + comp.Ph);
+  if (comp.Ph) printer.println("PH : " + comp.Ph);
+  if (comp.gst) printer.println("GST IN : " + comp.gst);
 
   printer.newLine();
   printer.drawLine();
@@ -696,7 +718,8 @@ async function printInvoice_custom2(printer, data) {
   ========================= */
   printer.alignCenter();
   printer.println("Thanks for your shopping");
-  printer.println("We are adding consumed tax");
+  printer.println("We are under composition tax payer !");
+  // printer.println("We are adding consumed tax");
 
   printer.newLine();
   printer.cut();
@@ -706,7 +729,6 @@ async function printInvoice_custom2(printer, data) {
 
   await printer.execute();
 }
-
 
 async function printInvoice_custom(printer, data) {
   console.log("🧾 printInvoice_custom START");
@@ -768,18 +790,15 @@ async function printInvoice_custom(printer, data) {
 
     printer.leftRight(
       "Bill No : " + (master.BillNo ?? ""),
-      "Date : " + (master.BillDate || "")
+      "Date : " + (master.BillDate || ""),
     );
 
     printer.leftRight(
       "Party : " + (master.BillPartyName || "Cash"),
-      "Time : " + (master.BillTime || "")
+      "Time : " + (master.BillTime || ""),
     );
 
-    printer.leftRight(
-      "Table : " + (master.table || ""),
-      ""
-    );
+    printer.leftRight("Table : " + (master.table || ""), "");
 
     printer.drawLine();
 
@@ -799,10 +818,33 @@ async function printInvoice_custom(printer, data) {
     /* =========================
        ITEMS
     ========================= */
-    table.forEach((it, i) => {
+    // table.forEach((it, i) => {
+    //   try {
+    //     printer.tableCustom([
+    //       { text: i + 1, cols: 3 },
+    //       {
+    //         text: String(it?.ItemNameTextField || "").substring(0, 21),
+    //         cols: 21,
+    //       },
+    //       { text: String(it?.qty || 0), cols: 4, align: "CENTER" },
+    //       { text: fmt(it?.Rate1), cols: 10, align: "RIGHT" },
+    //       { text: fmt(it?.total), cols: 10, align: "RIGHT" },
+    //     ]);
+    //   } catch (e) {
+    //     console.log("❌ Item print error:", e.message, it);
+    //   }
+    // });
+
+    let slNo = 1;
+
+    table.forEach((it) => {
       try {
+        if (parseFloat(it?.qty || 0) <= 0) {
+          return;
+        }
+
         printer.tableCustom([
-          { text: i + 1, cols: 3 },
+          { text: slNo++, cols: 3 },
           {
             text: String(it?.ItemNameTextField || "").substring(0, 21),
             cols: 21,
@@ -836,8 +878,8 @@ async function printInvoice_custom(printer, data) {
        FOOTER
     ========================= */
     printer.alignCenter();
-     printer.println("Thanks for your Visit");
-  printer.println("We are adding consumed tax");
+    printer.println("Thanks for your Visit");
+    printer.println("We are adding consumed tax");
 
     printer.newLine();
     printer.cut();
@@ -845,19 +887,15 @@ async function printInvoice_custom(printer, data) {
     await printer.execute();
 
     console.log("✅ Invoice printed successfully");
-
   } catch (err) {
     console.error("❌ printInvoice_custom ERROR:", err.message);
     console.error(err.stack);
   }
 }
 
-
-
-
 // ALL KOT PRINT
 
-async function all_kot_print(printer, data) {
+async function all_kot_print2(printer, data) {
   const { company = [], master = {}, kotTableData = [], logo = "" } = data;
 
   /* =========================
@@ -886,22 +924,6 @@ async function all_kot_print(printer, data) {
   printer.setTextNormal();
 
   printer.drawLine();
-
-  /* =========================
-     KOT NO + DATE (same line)
-  ========================= */
-  // printer.tableCustom([
-  //   {
-  //     text: "KOT NO: " + (master.OrderNo ?? "0"),
-  //     align: "LEFT",
-  //     cols: 22,
-  //   },
-  //   {
-  //     text: "Date: " + (master.BillDate || "") + " " + (master.BillTime || ""),
-  //     align: "RIGHT",
-  //     cols: 22,
-  //   },
-  // ]);
 
   // Increase font size
   printer.setTextSize(2, 2);
@@ -985,132 +1007,210 @@ async function all_kot_print(printer, data) {
   printer.beep();
   printer.beep();
 
+}
+
+async function all_kot_print(printer, data) {
+
+  const {
+    company = [],
+    master = {},
+    table = [],
+    kotTableData = [],
+    logo = ""
+  } = data;
+
+  /* =========================
+     LOGO (optional)
+  ========================= */
+  printer.alignCenter();
+
+  if (logo) {
+    try {
+      const logoPath = await downloadImage(logo);
+      await printer.printImage(logoPath);
+      printer.newLine();
+    } catch (e) {
+      console.log("Logo print error:", e.message);
+    }
+  }
+
+  /* =========================
+     TITLE
+  ========================= */
+  printer.setTextDoubleHeight();
+  printer.setTextDoubleWidth();
+  printer.bold(true);
+  printer.println("ALL KOT");
+  printer.bold(false);
+  printer.setTextNormal();
+
+  printer.drawLine();
+
+  /* =========================
+     KOT NO
+  ========================= */
+  printer.bold(true);
+  printer.setTextDoubleHeight();
+  printer.setTextDoubleWidth();
+
+  printer.alignLeft();
+  printer.println("KOT NO: " + (master.OrderNo ?? "0"));
+
+  printer.setTextNormal();
+  printer.bold(false);
+
+  /* =========================
+     DATE
+  ========================= */
+  printer.alignRight();
+
+  const shortDate =
+    (master.BillDate || "") + " " + (master.BillTime || "");
+
+  printer.println("Date: " + shortDate);
+
+  printer.alignLeft();
+  printer.drawLine();
+
+  /* =========================
+     STAFF & TABLE
+  ========================= */
+  printer.println("STAFF: " + (master.Lorry || "NIL"));
+  printer.println("TABLE NO: " + (master.table || "0"));
+
+  printer.drawLine();
+
+  /* =========================
+     HEADER
+  ========================= */
+  printer.bold(true);
+  printer.setTextDoubleHeight();
+
+  printer.tableCustom([
+    { text: "#", align: "LEFT", cols: 3 },
+    { text: "Item Name", align: "LEFT", cols: 37 },
+    { text: "Qty", align: "CENTER", cols: 8 }
+  ]);
+
+  printer.setTextNormal();
+  printer.bold(false);
+
+  printer.drawLine();
+
+  /* =========================
+     ITEMS
+  ========================= */
+
+  table.forEach((item, i) => {
+
+    const itemName = item.ItemNameTextField || "";
+    const qty = item.qty || 0;
+    const unit = item.Typ || "";
+
+    console.log("ALL KOT", "===============");
+    console.log("itemName", itemName);
+    console.log("qty", qty);
+
+    // Match notes from kotTableData
+    const kot = kotTableData.find(k =>
+      String(k.itemname || "").trim().toUpperCase() ===
+      String(itemName).trim().toUpperCase()
+    );
+
+    printer.bold(true);
+
+    printer.tableCustom([
+      {
+        text: String(i + 1),
+        align: "LEFT",
+        cols: 3,
+      },
+      {
+        text: itemName.substring(0, 37),
+        align: "LEFT",
+        cols: 37,
+      },
+      {
+        text: String(qty),
+        align: "CENTER",
+        cols: 8,
+      },
+    ]);
+
+    printer.bold(false);
+
+    /* =========================
+       UNIT
+    ========================= */
+    if (unit && String(unit).trim() !== "") {
+
+      printer.tableCustom([
+        {
+          text: "",
+          align: "LEFT",
+          cols: 3,
+        },
+        {
+          text: "[" + unit + "]",
+          align: "LEFT",
+          cols: 37,
+        },
+        {
+          text: "",
+          align: "CENTER",
+          cols: 8,
+        },
+      ]);
+
+    }
+
+    /* =========================
+       NOTES
+    ========================= */
+    const notes = kot?.notes;
+
+    if (
+      notes !== null &&
+      notes !== undefined &&
+      String(notes).trim() !== "" &&
+      String(notes).toLowerCase() !== "null"
+    ) {
+
+      const formattedNotes = String(notes)
+        .replace(/\\n/g, ", ")
+        .replace(/\r?\n/g, ", ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      printer.tableCustom([
+        {
+          text: "",
+          align: "LEFT",
+          cols: 3,
+        },
+        {
+          text: "* " + formattedNotes,
+          align: "LEFT",
+          cols: 45,
+        },
+      ]);
+    }
+
+  });
+
+  printer.drawLine();
+
+  /* =========================
+     CUT + BEEP
+  ========================= */
+  printer.cut();
+  printer.beep();
+  printer.beep();
+
   // await printer.execute();
 }
 
-// async function kot_print(printer, data) {
-//   const { company = [], master = {}, kotTableData = [], logo = "" } = data;
 
-//   /* =========================
-//      LOGO (optional)
-//   ========================= */
-//   printer.alignCenter();
-
-//   if (logo) {
-//     try {
-//       const logoPath = await downloadImage(logo);
-//       await printer.printImage(logoPath);
-//       printer.newLine();
-//     } catch (e) {
-//       console.log("Logo print error:", e.message);
-//     }
-//   }
-
-//   /* =========================
-//      TITLE
-//   ========================= */
-//   printer.setTextDoubleHeight();
-//   printer.setTextDoubleWidth();
-//   printer.bold(true);
-//   printer.println(" KOT ");
-//   printer.bold(false);
-//   printer.setTextNormal();
-
-//   printer.drawLine();
-
-//   /* =========================
-//      KOT NO + DATE (same line)
-//   ========================= */
-//   printer.tableCustom([
-//     {
-//       text: "KOT NO: " + (master.OrderNo ?? "0"),
-//       align: "LEFT",
-//       cols: 22,
-//     },
-//     {
-//       text: "Date: " + (master.BillDate || "") + " " + (master.BillTime || ""),
-//       align: "RIGHT",
-//       cols: 22,
-//     },
-//   ]);
-
-//   /* =========================
-//      STAFF & TABLE
-//   ========================= */
-//   printer.alignLeft();
-//   printer.println("STAFF: " + (master.Lorry || "NIL"));
-//   printer.println("TABLE NO: " + (master.table || "0"));
-
-//   printer.drawLine();
-
-//   /* =========================
-//      HEADER
-//      48 columns split: 3 | 37 | 8
-//   ========================= */
-//   printer.bold(true);
-//   printer.tableCustom([
-//     { text: "#", align: "LEFT", cols: 3 },
-//     { text: "Item Name", align: "LEFT", cols: 37 },
-//     { text: "Qty", align: "CENTER", cols: 8 },
-//   ]);
-//   printer.bold(false);
-
-//   printer.drawLine();
-
-//   /* =========================
-//      ITEMS (single row per item)
-//   ========================= */
-//   kotTableData.forEach((it, i) => {
-//     printer.tableCustom([
-//       {
-//         text: String(i + 1),
-//         align: "LEFT",
-//         cols: 3,
-//       },
-//       {
-//         text: String(it.itemname || "").substring(0, 37),
-//         align: "LEFT",
-//         cols: 37,
-//       },
-//       {
-//         text: String(it.qty ?? 0),
-//         align: "CENTER",
-//         cols: 8,
-//       },
-//     ]);
-//   });
-
-//   printer.drawLine();
-//   printer.newLine();
-
-//   /* =========================
-//      CUT + BEEP
-//   ========================= */
-//   printer.cut();
-//   printer.beep();
-//   printer.beep();
-
-//   // await printer.execute();
-// }
-
-// async function downloadImage(url) {
-//   const filePath = path.join(__dirname, "logo.png");
-
-//   const response = await axios({
-//     url,
-//     method: "GET",
-//     responseType: "stream",
-//   });
-
-//   await new Promise((resolve, reject) => {
-//     const stream = fs.createWriteStream(filePath);
-//     response.data.pipe(stream);
-//     stream.on("finish", resolve);
-//     stream.on("error", reject);
-//   });
-
-//   return filePath;
-// }
 
 async function kot_print(printer, data) {
   const { company = [], master = {}, kotTableData = [], logo = "" } = data;
@@ -1198,6 +1298,7 @@ async function kot_print(printer, data) {
   kotTableData.forEach((it, i) => {
     printer.bold(true);
 
+    // Main item row
     printer.tableCustom([
       {
         text: String(i + 1),
@@ -1217,10 +1318,63 @@ async function kot_print(printer, data) {
     ]);
 
     printer.bold(false);
+
+    /* =========================
+       UNIT (Item name-nte thazhe)
+    ========================= */
+    if (it.units && String(it.units).trim() !== "") {
+      printer.tableCustom([
+        {
+          text: "",
+          align: "LEFT",
+          cols: 3,
+        },
+        {
+          text: "[" + it.units + "]",
+          align: "LEFT",
+          cols: 37,
+        },
+        {
+          text: "",
+          align: "CENTER",
+          cols: 8,
+        },
+      ]);
+    }
+
+    /* =========================
+       NOTES (Null/empty allenkil mathram)
+    ========================= */
+    if (
+      it.notes !== null &&
+      it.notes !== undefined &&
+      String(it.notes).trim() !== "" &&
+      String(it.notes).toLowerCase() !== "null"
+    ) {
+
+      const notes = String(it.notes)
+        .replace(/\\n/g, ", ")
+        .replace(/\r?\n/g, ", ")
+        .trim();
+
+      printer.tableCustom([
+        {
+          text: "",
+          align: "LEFT",
+          cols: 3,
+        },
+        {
+          text: "* " + notes,
+          align: "LEFT",
+          cols: 45,
+        },
+      ]);
+    }
+
   });
 
   printer.drawLine();
-  printer.newLine();
+  //printer.newLine();
 
   /* =========================
      CUT + BEEP

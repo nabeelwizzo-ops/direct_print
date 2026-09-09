@@ -19,11 +19,11 @@
     },
     {
       "id": "kitchen-166559",
-      "name": "Kitchen1",
+      "name": "KITCHEN",
       "role": "KITCHEN",
       "enabled": true,
       "connection": {
-        "ip": "192.168.1.100",
+        "ip": "192.168.1.95",
         "port": 9100
       },
       "paper": {
