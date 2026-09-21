@@ -1035,15 +1035,15 @@ async function all_kot_print(printer, data) {
   ========================= */
   printer.alignCenter();
 
-  if (logo) {
-    try {
-      const logoPath = await downloadImage(logo);
-      await printer.printImage(logoPath);
-      printer.newLine();
-    } catch (e) {
-      console.log("Logo print error:", e.message);
-    }
-  }
+  // if (logo) {
+  //   try {
+  //     const logoPath = await downloadImage(logo);
+  //     await printer.printImage(logoPath);
+  //     printer.newLine();
+  //   } catch (e) {
+  //     console.log("Logo print error:", e.message);
+  //   }
+  // }
 
   /* =========================
      TITLE
@@ -1086,6 +1086,7 @@ async function all_kot_print(printer, data) {
   /* =========================
      STAFF & TABLE
   ========================= */
+  printer.println("BILL  NO: " + (master.OrderNo || "0"));
   printer.println("STAFF: " + (master.Lorry || "NIL"));
   printer.println("TABLE NO: " + (master.table || "0"));
 
@@ -1231,15 +1232,15 @@ async function kot_print(printer, data) {
   ========================= */
   printer.alignCenter();
 
-  if (logo) {
-    try {
-      const logoPath = await downloadImage(logo);
-      await printer.printImage(logoPath);
-      printer.newLine();
-    } catch (e) {
-      console.log("Logo print error:", e.message);
-    }
-  }
+  // if (logo) {
+  //   try {
+  //     const logoPath = await downloadImage(logo);
+  //     await printer.printImage(logoPath);
+  //     printer.newLine();
+  //   } catch (e) {
+  //     console.log("Logo print error:", e.message);
+  //   }
+  // }
 
   /* =========================
      TITLE
@@ -1281,6 +1282,7 @@ async function kot_print(printer, data) {
   /* =========================
      STAFF & TABLE
   ========================= */
+  printer.println("BILL  NO: " + (master.OrderNo || "0"));
   printer.println("STAFF: " + (master.Lorry || "NIL"));
   printer.println("TABLE NO: " + (master.table || "0"));
 
