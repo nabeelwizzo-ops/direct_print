@@ -1,9 +1,26 @@
 {
   "printers": [
     {
-      "id": "cashier1-166558",
-      "name": "Cashier1",
-      "role": "CASHIER",
+      "id": "kitchen-2-057079",
+      "name": "KITCHEN 2",
+      "role": "KITCHEN",
+      "enabled": true,
+      "connection": {
+        "ip": "192.168.1.100",
+        "port": 9100
+      },
+      "paper": {
+        "name": "RECEIPT(72mm)",
+        "width": 576
+      },
+      "printSettings": {
+        "cut": true
+      }
+    },
+    {
+      "id": "kitchen-166559",
+      "name": "KITCHEN1",
+      "role": "KITCHEN",
       "enabled": true,
       "connection": {
         "ip": "192.168.1.95",
@@ -18,8 +35,8 @@
       }
     },
     {
-      "id": "kitchen-166559",
-      "name": "Kitchen1",
+      "id": "kitchen2-878866",
+      "name": "KITCHEN2",
       "role": "KITCHEN",
       "enabled": true,
       "connection": {
@@ -27,7 +44,7 @@
         "port": 9100
       },
       "paper": {
-        "name": "RECIEPT(72mm)",
+        "name": "RECEIPT(72mm)",
         "width": 576
       },
       "printSettings": {
@@ -35,16 +52,16 @@
       }
     },
     {
-      "id": "kitchen-166560",
-      "name": "Kitchen2",
+      "id": "fish-400316",
+      "name": "FISH",
       "role": "KITCHEN",
       "enabled": true,
       "connection": {
-        "ip": "192.168.1.4",
+        "ip": "192.168.1.125",
         "port": 9100
       },
       "paper": {
-        "name": "RECIEPT(72mm)",
+        "name": "RECEIPT(72mm)",
         "width": 576
       },
       "printSettings": {
@@ -52,16 +69,16 @@
       }
     },
     {
-      "id": "kitchen-5-930099",
-      "name": "KITCHEN 5",
+      "id": "juice1-400316",
+      "name": "JUICE1",
       "role": "KITCHEN",
       "enabled": true,
       "connection": {
-        "ip": "192.168.1.10",
+        "ip": "192.168.1.109",
         "port": 9100
       },
       "paper": {
-        "name": "RECIEPT(72mm)",
+        "name": "RECEIPT(72mm)",
         "width": 576
       },
       "printSettings": {
@@ -69,16 +86,16 @@
       }
     },
     {
-      "id": "kitchen-6-930100",
-      "name": "KITCHEN 6",
-      "role": "KITCHEN",
+      "id": "cashier1-057079",
+      "name": "Cashier1",
+      "role": "CASHIER",
       "enabled": true,
       "connection": {
-        "ip": "192.168.1.12",
+        "ip": "192.168.1.100",
         "port": 9100
       },
       "paper": {
-        "name": "RECIEPT(72mm)",
+        "name": "RECEIPT(72mm)",
         "width": 576
       },
       "printSettings": {

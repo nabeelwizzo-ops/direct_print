@@ -1,32 +1,231 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AndroPrint Login</title>
-<style>
-body{margin:0;font-family:system-ui;background:#2563eb}
-.card{background:#fff;padding:20px;margin:30% auto;width:90%;max-width:320px;border-radius:14px}
-input,button{width:100%;padding:12px;margin:6px 0}
-button{background:#2563eb;color:#fff;border:none;border-radius:8px}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AndroPrint - Admin Login</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #3b82f6 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .login-container {
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .login-card {
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(12px);
+      padding: 36px 28px;
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .brand-header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .brand-icon {
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      color: white;
+      border-radius: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      margin-bottom: 12px;
+      box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3);
+    }
+
+    .brand-header h2 {
+      color: #1e293b;
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .brand-header p {
+      color: #64748b;
+      font-size: 0.9rem;
+    }
+
+    .input-group {
+      margin-bottom: 18px;
+      position: relative;
+    }
+
+    .input-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 6px;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-wrapper i {
+      position: absolute;
+      left: 14px;
+      color: #94a3b8;
+      font-size: 1rem;
+    }
+
+    .input-wrapper input {
+      width: 100%;
+      padding: 12px 14px 12px 42px;
+      font-size: 0.95rem;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 10px;
+      outline: none;
+      background: #f8fafc;
+      transition: all 0.2s ease;
+    }
+
+    .input-wrapper input:focus {
+      border-color: #2563eb;
+      background: #ffffff;
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+    }
+
+    .btn-login {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .btn-login:hover {
+      background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+      transform: translateY(-1px);
+    }
+
+    .btn-login:active {
+      transform: translateY(0);
+    }
+
+    .error-msg {
+      display: none;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #dc2626;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .footer-text {
+      text-align: center;
+      margin-top: 20px;
+      color: #94a3b8;
+      font-size: 0.8rem;
+    }
+
+    @media (max-width: 480px) {
+      .login-card {
+        padding: 28px 20px;
+      }
+    }
+  </style>
 </head>
+
 <body>
 
-<div class="card">
-<h3>Admin Login</h3>
-<input id="u" placeholder="Username">
-<input id="p" placeholder="Password" type="password">
-<button onclick="login()">Login</button>
-</div>
+  <div class="login-container">
+    <div class="login-card">
+      <div class="brand-header">
+        <div class="brand-icon">
+          <i class="fas fa-print"></i>
+        </div>
+        <h2>AndroPrint Admin</h2>
+        <p>Sign in to access your print server</p>
+      </div>
 
-<script>
-function login(){
-  if(u.value==="admin" && p.value==="1231"){
-    localStorage.setItem("auth","1");
-    location.href="dashboard.html";
-  } else alert("Invalid credentials");
-}
-</script>
+      <div id="errorBox" class="error-msg">
+        <i class="fas fa-exclamation-circle"></i> Invalid Username or Password
+      </div>
+
+      <form onsubmit="event.preventDefault(); login();">
+        <div class="input-group">
+          <label for="u">Username</label>
+          <div class="input-wrapper">
+            <i class="fas fa-user"></i>
+            <input id="u" type="text" placeholder="Enter username" autocomplete="username" required>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label for="p">Password</label>
+          <div class="input-wrapper">
+            <i class="fas fa-lock"></i>
+            <input id="p" type="password" placeholder="Enter password" autocomplete="current-password" required>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-login">
+          <i class="fas fa-sign-in-alt"></i> Login
+        </button>
+      </form>
+
+      <div class="footer-text">
+        AndroPrint Direct Print System &bull; v2.0
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function login() {
+      const u = document.getElementById("u").value.trim();
+      const p = document.getElementById("p").value.trim();
+      const errorBox = document.getElementById("errorBox");
+
+      if (u === "admin" && p === "1231") {
+        localStorage.setItem("auth", "1");
+        location.href = "dashboard.html";
+      } else {
+        errorBox.style.display = "block";
+        errorBox.innerHTML = '<i class="fas fa-exclamation-circle"></i> Invalid credentials. Default: admin / 1231';
+      }
+    }
+  </script>
 
 </body>
+
 </html>

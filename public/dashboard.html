@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -11,7 +12,7 @@
             box-sizing: border-box;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
         }
-        
+
         :root {
             --primary-color: #2563eb;
             --primary-dark: #1d4ed8;
@@ -24,14 +25,14 @@
             --border-color: #e2e8f0;
             --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
-        
+
         body {
             background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
             min-height: 100vh;
             color: #334155;
             line-height: 1.5;
         }
-        
+
         /* Header */
         .header {
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
@@ -45,7 +46,7 @@
             align-items: center;
             gap: 12px;
         }
-        
+
         .header-icon {
             width: 40px;
             height: 40px;
@@ -56,22 +57,22 @@
             justify-content: center;
             font-size: 1.5rem;
         }
-        
+
         .header-content {
             flex: 1;
         }
-        
+
         .header h1 {
             font-size: 1.4rem;
             font-weight: 600;
             margin-bottom: 4px;
         }
-        
+
         .header-subtitle {
             font-size: 0.85rem;
             opacity: 0.9;
         }
-        
+
         .logout-btn {
             background: rgba(255, 255, 255, 0.2);
             border: none;
@@ -85,18 +86,18 @@
             cursor: pointer;
             transition: all 0.2s ease;
         }
-        
+
         .logout-btn:hover {
             background: rgba(255, 255, 255, 0.3);
         }
-        
+
         /* Main Container */
         .container {
-            padding: 16px;
-            max-width: 800px;
+            padding: 20px 16px;
+            max-width: 1100px;
             margin: 0 auto;
         }
-        
+
         /* Status Card */
         .status-card {
             background: var(--card-bg);
@@ -107,7 +108,7 @@
             border: 1px solid var(--border-color);
             animation: fadeIn 0.5s ease;
         }
-        
+
         .status-header {
             display: flex;
             align-items: center;
@@ -116,7 +117,7 @@
             padding-bottom: 16px;
             border-bottom: 2px solid var(--light-bg);
         }
-        
+
         .status-icon {
             width: 48px;
             height: 48px;
@@ -128,26 +129,26 @@
             color: white;
             font-size: 1.5rem;
         }
-        
+
         .status-title {
             font-size: 1.3rem;
             font-weight: 600;
             color: #1e293b;
         }
-        
+
         .status-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 16px;
         }
-        
+
         .status-item {
             padding: 16px;
             background: var(--light-bg);
             border-radius: 14px;
             border: 1px solid var(--border-color);
         }
-        
+
         .status-label {
             font-size: 0.85rem;
             color: var(--secondary-color);
@@ -156,14 +157,14 @@
             align-items: center;
             gap: 6px;
         }
-        
+
         .status-value {
             font-size: 1.1rem;
             font-weight: 600;
             color: #1e293b;
             word-break: break-all;
         }
-        
+
         .badge {
             display: inline-flex;
             align-items: center;
@@ -174,54 +175,54 @@
             text-transform: uppercase;
             gap: 6px;
         }
-        
+
         .badge-success {
             background: #d1fae5;
             color: #065f46;
         }
-        
+
         .badge-warning {
             background: #fef3c7;
             color: #92400e;
         }
-        
+
         .badge-danger {
             background: #fee2e2;
             color: #991b1b;
         }
-        
+
         .badge-info {
             background: #dbeafe;
             color: #1e40af;
         }
-        
+
         .badge-dot {
             width: 8px;
             height: 8px;
             border-radius: 50%;
         }
-        
+
         .badge-success .badge-dot {
             background: #10b981;
         }
-        
+
         .badge-warning .badge-dot {
             background: #f59e0b;
         }
-        
+
         .badge-danger .badge-dot {
             background: #ef4444;
         }
-        
+
         .badge-info .badge-dot {
             background: #3b82f6;
         }
-        
+
         /* Quick Actions */
         .quick-actions {
             margin-bottom: 20px;
         }
-        
+
         .section-title {
             font-size: 1.1rem;
             font-weight: 600;
@@ -231,7 +232,7 @@
             align-items: center;
             gap: 10px;
         }
-        
+
         .section-title::before {
             content: '';
             width: 4px;
@@ -239,13 +240,13 @@
             background: var(--primary-color);
             border-radius: 2px;
         }
-        
+
         .actions-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 16px;
         }
-        
+
         .action-card {
             background: var(--card-bg);
             border-radius: 16px;
@@ -260,13 +261,13 @@
             text-decoration: none;
             color: inherit;
         }
-        
+
         .action-card:hover {
             transform: translateY(-4px);
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
             border-color: var(--primary-color);
         }
-        
+
         .action-icon {
             width: 48px;
             height: 48px;
@@ -277,43 +278,43 @@
             font-size: 1.5rem;
             flex-shrink: 0;
         }
-        
+
         .action-card:nth-child(1) .action-icon {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             color: white;
         }
-        
+
         .action-card:nth-child(2) .action-icon {
             background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
             color: white;
         }
-        
+
         .action-card:nth-child(3) .action-icon {
             background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
             color: white;
         }
-        
+
         .action-content {
             flex: 1;
         }
-        
+
         .action-title {
             font-size: 1rem;
             font-weight: 600;
             color: #1e293b;
             margin-bottom: 4px;
         }
-        
+
         .action-desc {
             font-size: 0.85rem;
             color: var(--secondary-color);
         }
-        
+
         .action-arrow {
             color: var(--secondary-color);
             font-size: 1.2rem;
         }
-        
+
         /* Footer */
         .footer {
             text-align: center;
@@ -323,7 +324,7 @@
             margin-top: 20px;
             border-top: 1px solid var(--border-color);
         }
-        
+
         /* Loading Animation */
         .loading {
             display: flex;
@@ -333,7 +334,7 @@
             padding: 40px 20px;
             gap: 16px;
         }
-        
+
         .spinner {
             width: 40px;
             height: 40px;
@@ -342,75 +343,83 @@
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
-        
+
         /* Animations */
         @keyframes fadeIn {
             from {
                 opacity: 0;
                 transform: translateY(20px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
             }
         }
-        
+
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
-        
+
         /* Responsive Design */
         @media (max-width: 640px) {
             .header {
                 padding: 16px;
             }
-            
+
             .header h1 {
                 font-size: 1.2rem;
             }
-            
+
             .container {
                 padding: 12px;
             }
-            
+
             .status-card {
                 padding: 20px;
             }
-            
+
             .status-grid {
                 grid-template-columns: 1fr;
             }
-            
+
             .actions-grid {
                 grid-template-columns: 1fr;
             }
-            
+
             .action-card {
                 padding: 16px;
             }
         }
-        
+
         @media (max-width: 480px) {
-            .header-icon, .logout-btn {
+
+            .header-icon,
+            .logout-btn {
                 width: 36px;
                 height: 36px;
                 font-size: 1.2rem;
             }
-            
+
             .status-icon {
                 width: 40px;
                 height: 40px;
                 font-size: 1.2rem;
             }
-            
+
             .action-icon {
                 width: 40px;
                 height: 40px;
                 font-size: 1.2rem;
             }
         }
-        
+
         /* Error State */
         .error-card {
             background: #fee2e2;
@@ -421,12 +430,12 @@
             text-align: center;
             animation: fadeIn 0.5s ease;
         }
-        
+
         .error-icon {
             font-size: 2rem;
             margin-bottom: 12px;
         }
-        
+
         .retry-btn {
             background: #ef4444;
             color: white;
@@ -438,12 +447,110 @@
             font-weight: 600;
             transition: background 0.2s ease;
         }
-        
-        .retry-btn:hover {
-            background: #dc2626;
+
+        /* Modern Alert & Exit Modal */
+        .custom-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .custom-modal-card {
+            background: #ffffff;
+            border-radius: 20px;
+            padding: 28px 24px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            transform: scale(0.95);
+            animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes popIn {
+            to {
+                transform: scale(1);
+            }
+        }
+
+        .modal-icon-badge {
+            width: 60px;
+            height: 60px;
+            border-radius: 18px;
+            margin: 0 auto 16px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+        }
+
+        .modal-icon-badge.warning {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .modal-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+
+        .modal-desc {
+            font-size: 0.92rem;
+            color: #64748b;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+
+        .modal-btn-group {
+            display: flex;
+            gap: 12px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .modal-btn.btn-secondary {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .modal-btn.btn-secondary:hover {
+            background: #e2e8f0;
+        }
+
+        .modal-btn.btn-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        .modal-btn.btn-danger:hover {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
         }
     </style>
 </head>
+
 <body>
     <!-- Header -->
     <div class="header">
@@ -460,7 +567,7 @@
             </svg>
         </button>
     </div>
-    
+
     <!-- Main Content -->
     <div class="container">
         <!-- Status Card -->
@@ -482,7 +589,7 @@
                 <button class="retry-btn" onclick="loadSystemInfo()">Retry</button>
             </div>
         </div>
-        
+
         <!-- Quick Actions -->
         <div class="quick-actions">
             <div class="section-title">Quick Actions</div>
@@ -495,7 +602,7 @@
                     </div>
                     <div class="action-arrow">→</div>
                 </a>
-                
+
                 <a href="clients.html" class="action-card">
                     <div class="action-icon">👥</div>
                     <div class="action-content">
@@ -504,42 +611,60 @@
                     </div>
                     <div class="action-arrow">→</div>
                 </a>
-                
+
                 <a href="cloudflare.html" class="action-card">
                     <div class="action-icon">☁</div>
                     <div class="action-content">
-                        <div class="action-title">Cloudflare Tunnel</div>
-                        <div class="action-desc">Configure remote access</div>
+                        <div class="action-title">Cloudflare Settings</div>
+                        <div class="action-desc">Manage domain and tunnel configuration</div>
                     </div>
                     <div class="action-arrow">→</div>
                 </a>
+
+                <a href="logs.html" class="action-card">
+                    <div class="action-icon">📜</div>
+                    <div class="action-content">
+                        <div class="action-title">System & Print Logs</div>
+                        <div class="action-desc">View real-time diagnostic & print logs</div>
+                    </div>
+                    <div class="action-arrow">→</div>
+                </a>
+
+                <div class="action-card" onclick="testCloudPrint()" style="cursor: pointer; border: 1.5px dashed #3b82f6;">
+                    <div class="action-icon" style="background: #eff6ff; color: #2563eb;">🚀</div>
+                    <div class="action-content">
+                        <div class="action-title" style="color: #1e40af;">Test Cloud Print (MQTT)</div>
+                        <div class="action-desc" id="cloudTestDesc">Simulate a remote cloud print job</div>
+                    </div>
+                    <div class="action-arrow" id="cloudTestArrow">▶</div>
+                </div>
             </div>
         </div>
     </div>
-    
+
     <!-- Footer -->
     <div class="footer">
         AndroPrint Server • v1.0.0 • All systems operational
     </div>
-    
+
     <script>
         // Check authentication
         if (!localStorage.getItem("auth")) {
             window.location.href = "index.html";
         }
-        
+
         // DOM Elements
         const loadingElement = document.getElementById('loading');
         const statusGrid = document.getElementById('statusGrid');
         const errorCard = document.getElementById('errorCard');
         const errorMessage = document.getElementById('errorMessage');
-        
+
         // Format badge based on status
         function getBadge(status, value) {
             if (typeof value === 'boolean') {
                 value = value ? 'Enabled' : 'Disabled';
             }
-            
+
             const statusMap = {
                 'Enabled': 'success',
                 'Disabled': 'danger',
@@ -550,10 +675,10 @@
                 'Online': 'success',
                 'Offline': 'danger'
             };
-            
+
             const badgeType = statusMap[value] || 'info';
             const badgeClass = `badge-${badgeType}`;
-            
+
             return `
                 <div class="badge ${badgeClass}">
                     <div class="badge-dot"></div>
@@ -561,7 +686,7 @@
                 </div>
             `;
         }
-        
+
         // Load system information
         async function loadSystemInfo() {
             try {
@@ -569,21 +694,52 @@
                 loadingElement.style.display = 'flex';
                 statusGrid.style.display = 'none';
                 errorCard.style.display = 'none';
-                
+
                 // Fetch server config
                 const response = await fetch('/api/server');
-                
+
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                
+
                 const data = await response.json();
-                
+
                 // Hide loading, show status grid
                 loadingElement.style.display = 'none';
-                
+
                 // Create status items
+                const connections = data.data.connections || {};
+                const networkIpsList = (connections.networkUrls || []).join('<br>') || 'N/A';
+                const domainUrlDisplay = connections.domain || 'Not configured';
+
+                const cloudInfo = data.data.cloudAgent || {};
+                const cloudStatus = cloudInfo.status || 'CONNECTING';
+
                 statusGrid.innerHTML = `
+                    <div class="status-item" style="border: 2px solid #3b82f6; background: rgba(59, 130, 246, 0.05);">
+                        <div class="status-label" style="color: #2563eb; font-weight: 700;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
+                            </svg>
+                            Cloud Pair Code (Mode 1)
+                        </div>
+                        <div class="status-value" style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                            <span style="font-family: monospace; font-size: 1.1rem; font-weight: 700; color: #1e40af;">${data.data.pairCode || data.data.serverId || 'N/A'}</span>
+                            <button onclick="navigator.clipboard.writeText('${data.data.pairCode || data.data.serverId}'); alert('Pair Code Copied!');" style="padding: 4px 10px; border-radius: 6px; border: 1px solid #3b82f6; background: #eff6ff; color: #2563eb; font-size: 0.75rem; cursor: pointer; font-weight: 600;">Copy</button>
+                        </div>
+                    </div>
+
+                    <div class="status-item">
+                        <div class="status-label">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            Cloud MQTT Agent
+                        </div>
+                        <div class="status-value">${getBadge('CloudAgent', cloudStatus === 'CONNECTED' ? 'Online' : cloudStatus === 'CONNECTING' ? 'Active' : 'Offline')}</div>
+                    </div>
+
                     <div class="status-item">
                         <div class="status-label">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -601,9 +757,45 @@
                                 <circle cx="12" cy="12" r="10"></circle>
                                 <polyline points="12 6 12 12 16 14"></polyline>
                             </svg>
-                            Server Port
+                            Server Port / Host
                         </div>
-                        <div class="status-value">${data.data.port || window.location.port || 'N/A'}</div>
+                        <div class="status-value">${data.data.port || '3000'} (${data.data.host || '0.0.0.0'})</div>
+                    </div>
+
+                    <div class="status-item">
+                        <div class="status-label">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                            </svg>
+                            Localhost URL
+                        </div>
+                        <div class="status-value">${connections.localhost || 'http://localhost:3000'}</div>
+                    </div>
+
+                    <div class="status-item">
+                        <div class="status-label">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                                <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                                <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                                <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                            </svg>
+                            System Network IP(s)
+                        </div>
+                        <div class="status-value">${networkIpsList}</div>
+                    </div>
+
+                    <div class="status-item">
+                        <div class="status-label">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="2" y1="12" x2="22" y2="12"></line>
+                                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                            </svg>
+                            Domain URL
+                        </div>
+                        <div class="status-value">${domainUrlDisplay}</div>
                     </div>
                     
                     <div class="status-item">
@@ -634,27 +826,17 @@
                                 <rect x="1" y="5" width="22" height="14" rx="2" ry="2"></rect>
                                 <line x1="1" y1="10" x2="23" y2="10"></line>
                             </svg>
-                            Uptime
-                        </div>
-                        <div class="status-value">${data.data.createdAt ? new Date(data.data.createdAt).toLocaleDateString() : 'N/A'}</div>
-                    </div>
-                    
-                    <div class="status-item">
-                        <div class="status-label">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-                            </svg>
-                            Last Updated
+                            Last Refreshed
                         </div>
                         <div class="status-value">${new Date().toLocaleTimeString()}</div>
                     </div>
                 `;
-                
+
                 statusGrid.style.display = 'grid';
-                
+
             } catch (error) {
                 console.error('Error loading system info:', error);
-                
+
                 // Show error
                 loadingElement.style.display = 'none';
                 statusGrid.style.display = 'none';
@@ -662,34 +844,118 @@
                 errorCard.style.display = 'block';
             }
         }
-        
-        // Logout function
-        function logout() {
-            if (confirm('Are you sure you want to logout?')) {
-                localStorage.removeItem('auth');
-                window.location.href = 'index.html';
-            }
+
+        // Logout / Exit Modal functions
+        function showExitModal() {
+            const modal = document.getElementById('exitModal');
+            if (modal) modal.style.display = 'flex';
         }
-        
+
+        function closeExitModal() {
+            const modal = document.getElementById('exitModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function confirmExit() {
+            localStorage.removeItem('auth');
+            window.location.href = 'index.html';
+        }
+
+        function logout() {
+            showExitModal();
+        }
+
+        // Intercept Backspace & Escape keys for Exit confirmation
+        document.addEventListener('keydown', (e) => {
+            const modal = document.getElementById('exitModal');
+            const isModalOpen = modal && modal.style.display !== 'none';
+
+            if (isModalOpen && e.key === 'Escape') {
+                closeExitModal();
+                return;
+            }
+
+            const activeEl = document.activeElement;
+            const isInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable);
+
+            if ((e.key === 'Backspace' && !isInput) || (e.key === 'Escape' && !isInput)) {
+                e.preventDefault();
+                showExitModal();
+            }
+        });
+
+        // Intercept mobile/tablet back button navigation
+        history.pushState(null, null, location.href);
+        window.addEventListener('popstate', function () {
+            history.pushState(null, null, location.href);
+            showExitModal();
+        });
+
         // Auto-refresh every 30 seconds
         function startAutoRefresh() {
             setInterval(loadSystemInfo, 30000);
         }
-        
+
+        // Cloud Print Test trigger
+        async function testCloudPrint() {
+            const desc = document.getElementById('cloudTestDesc');
+            const arrow = document.getElementById('cloudTestArrow');
+            try {
+                desc.textContent = 'Publishing to Cloud MQTT...';
+                arrow.textContent = '⏳';
+                const res = await fetch('/api/cloud-test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                const data = await res.json();
+                if (data.success) {
+                    desc.textContent = '✅ Cloud Print Received! Check Logs';
+                    arrow.textContent = '✔';
+                    setTimeout(() => {
+                        window.location.href = 'logs.html';
+                    }, 1200);
+                } else {
+                    desc.textContent = '❌ Failed: ' + (data.error || 'Unknown error');
+                    arrow.textContent = '✖';
+                }
+            } catch (err) {
+                desc.textContent = '❌ Error: ' + err.message;
+                arrow.textContent = '✖';
+            }
+        }
+
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             loadSystemInfo();
             startAutoRefresh();
         });
-        
+
         // Handle offline/online events
         window.addEventListener('offline', () => {
             errorMessage.textContent = 'You are offline. Please check your internet connection.';
             errorCard.style.display = 'block';
             statusGrid.style.display = 'none';
         });
-        
+
         window.addEventListener('online', loadSystemInfo);
     </script>
+
+    <!-- Modern Exit Confirmation Modal -->
+    <div id="exitModal" class="custom-modal-overlay" style="display:none;"
+        onclick="if(event.target===this) closeExitModal()">
+        <div class="custom-modal-card">
+            <div class="modal-icon-badge warning">
+                <i class="fas fa-sign-out-alt"></i>
+            </div>
+            <div class="modal-title">Exit Dashboard?</div>
+            <div class="modal-desc">Are you sure you want to exit / logout of AndroPrint Dashboard?</div>
+            <div class="modal-btn-group">
+                <button class="modal-btn btn-secondary" onclick="closeExitModal()">Cancel</button>
+                <button class="modal-btn btn-danger" onclick="confirmExit()">Yes, Exit</button>
+            </div>
+        </div>
+    </div>
 </body>
+
 </html>

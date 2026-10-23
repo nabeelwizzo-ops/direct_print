@@ -1,22 +1,111 @@
-# Node / npm
+# ==============================================================================
+# Dependencies & Package Managers
+# ==============================================================================
 node_modules/
 package-lock.json
-printer.json
+yarn.lock
+pnpm-lock.yaml
+.npm/
+.node_repl_history
 
-# Environment files
+# ==============================================================================
+# Environment & Secrets (Local credentials / configurations)
+# ==============================================================================
 .env
+.env.*
+!.env.example
+core/.env
 printer.env
+!printerexamplefull.env
 
-# Database
+# ==============================================================================
+# Client Package Archives, Zips & Staging
+# ==============================================================================
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+androprint_client_setup.zip
+androprint_client_setup_backup.zip
+_staging_androprint/
+_staging_*/
+
+# ==============================================================================
+# Databases & Storage
+# ==============================================================================
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
 print_server.db
 
-# Uploads (keep folder only)
+# ==============================================================================
+# Logs & Process Outputs
+# ==============================================================================
+*.log
+logs/
+config/*.log
+config/system.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ==============================================================================
+# Temporary, Cache & Backup Files
+# ==============================================================================
+*.bak
+*.backup
+*.tmp
+*.temp
+*~
+*.swp
+*.swo
+.cache/
+.temp/
+.tmp/
+
+# ==============================================================================
+# Uploads (keep directory via .gitkeep)
+# ==============================================================================
 uploads/*
 !uploads/.gitkeep
 
-# Logs
-*.log
+# ==============================================================================
+# Build & Compilation Outputs (Java / Spring / Maven)
+# ==============================================================================
+**/target/
+*.class
 
-# OS files
+# ==============================================================================
+# Operating System Files
+# ==============================================================================
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
 Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# ==============================================================================
+# IDE & Editor Configs
+# ==============================================================================
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ==============================================================================
+# Dynamic Runtime / Tenant Data
+# ==============================================================================
+config/tenants/
+printer.json

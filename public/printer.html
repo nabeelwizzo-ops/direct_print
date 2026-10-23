@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Printer Manager</title>
@@ -11,7 +12,7 @@
             padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
         }
-        
+
         body {
             background-color: #f5f7fa;
             color: #333;
@@ -19,12 +20,12 @@
             padding: 20px 15px 40px;
             min-height: 100vh;
         }
-        
+
         .container {
-            max-width: 800px;
+            max-width: 1100px;
             margin: 0 auto;
         }
-        
+
         header {
             display: flex;
             justify-content: space-between;
@@ -33,7 +34,7 @@
             padding-bottom: 15px;
             border-bottom: 1px solid #e1e5eb;
         }
-        
+
         h1 {
             font-size: 1.8rem;
             color: #2c3e50;
@@ -41,11 +42,11 @@
             align-items: center;
             gap: 10px;
         }
-        
+
         h1 i {
             color: #3498db;
         }
-        
+
         .status-badge {
             font-size: 0.8rem;
             padding: 4px 10px;
@@ -57,17 +58,17 @@
             align-items: center;
             gap: 5px;
         }
-        
+
         .status-badge.offline {
             background-color: #fdedec;
             color: #e74c3c;
         }
-        
+
         .header-actions {
             display: flex;
             gap: 10px;
         }
-        
+
         .action-btn {
             background-color: #3498db;
             color: white;
@@ -81,31 +82,31 @@
             cursor: pointer;
             transition: background-color 0.2s;
         }
-        
+
         .action-btn:hover {
             background-color: #2980b9;
         }
-        
+
         .action-btn:active {
             transform: scale(0.98);
         }
-        
+
         .action-btn.add {
             background-color: #27ae60;
         }
-        
+
         .action-btn.add:hover {
             background-color: #219653;
         }
-        
+
         .action-btn.refresh {
             background-color: #7f8c8d;
         }
-        
+
         .action-btn.refresh:hover {
             background-color: #6c7b7d;
         }
-        
+
         .printer-card {
             background-color: white;
             border-radius: 12px;
@@ -114,12 +115,12 @@
             overflow: hidden;
             transition: transform 0.2s, box-shadow 0.2s;
         }
-        
+
         .printer-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
         }
-        
+
         .printer-header {
             padding: 18px 20px;
             display: flex;
@@ -128,13 +129,13 @@
             background-color: #f8fafc;
             border-bottom: 1px solid #eef2f7;
         }
-        
+
         .printer-name-container {
             display: flex;
             align-items: center;
             gap: 12px;
         }
-        
+
         .printer-icon {
             width: 44px;
             height: 44px;
@@ -146,20 +147,20 @@
             color: white;
             font-size: 1.3rem;
         }
-        
+
         .printer-name {
             font-size: 1.2rem;
             font-weight: 700;
             color: #2c3e50;
             margin-bottom: 4px;
         }
-        
+
         .printer-id {
             font-size: 0.9rem;
             color: #7f8c8d;
             font-family: monospace;
         }
-        
+
         .printer-role {
             font-size: 0.85rem;
             padding: 4px 12px;
@@ -168,27 +169,27 @@
             border-radius: 20px;
             font-weight: 600;
         }
-        
+
         .printer-role.admin {
             background-color: #fef9e7;
             color: #f39c12;
         }
-        
+
         .printer-details {
             padding: 20px;
         }
-        
+
         .detail-row {
             display: flex;
             justify-content: space-between;
             padding: 12px 0;
             border-bottom: 1px solid #f1f5f9;
         }
-        
+
         .detail-row:last-child {
             border-bottom: none;
         }
-        
+
         .detail-label {
             color: #7f8c8d;
             font-weight: 500;
@@ -197,7 +198,7 @@
             align-items: center;
             gap: 8px;
         }
-        
+
         .detail-value {
             font-weight: 600;
             color: #2c3e50;
@@ -206,13 +207,13 @@
             max-width: 60%;
             word-break: break-word;
         }
-        
+
         .connection-info {
             display: flex;
             align-items: center;
             gap: 8px;
         }
-        
+
         .connection-dot {
             width: 10px;
             height: 10px;
@@ -220,17 +221,17 @@
             background-color: #27ae60;
             display: inline-block;
         }
-        
+
         .connection-dot.offline {
             background-color: #e74c3c;
         }
-        
+
         .paper-info {
             display: flex;
             align-items: center;
             gap: 8px;
         }
-        
+
         .paper-width {
             font-size: 0.85rem;
             background-color: #f2f4f7;
@@ -238,14 +239,14 @@
             border-radius: 4px;
             color: #5d6d7e;
         }
-        
+
         .settings-info {
             display: flex;
             gap: 12px;
             flex-wrap: wrap;
             justify-content: flex-end;
         }
-        
+
         .setting-badge {
             font-size: 0.8rem;
             padding: 5px 10px;
@@ -257,7 +258,7 @@
             gap: 5px;
             border: 1px solid #eaecee;
         }
-        
+
         .printer-actions {
             display: flex;
             gap: 10px;
@@ -266,7 +267,7 @@
             border-top: 1px solid #eef2f7;
             justify-content: flex-end;
         }
-        
+
         .btn {
             padding: 8px 16px;
             border-radius: 6px;
@@ -279,61 +280,61 @@
             gap: 6px;
             transition: all 0.2s;
         }
-        
+
         .btn-edit {
             background-color: #f8f9fa;
             color: #3498db;
             border: 1px solid #3498db;
         }
-        
+
         .btn-edit:hover {
             background-color: #3498db;
             color: white;
         }
-        
+
         .btn-test {
             background-color: #f8f9fa;
             color: #27ae60;
             border: 1px solid #27ae60;
         }
-        
+
         .btn-test:hover {
             background-color: #27ae60;
             color: white;
         }
-        
+
         .btn-delete {
             background-color: #f8f9fa;
             color: #e74c3c;
             border: 1px solid #e74c3c;
         }
-        
+
         .btn-delete:hover {
             background-color: #e74c3c;
             color: white;
         }
-        
+
         .btn-toggle {
             background-color: #f8f9fa;
             color: #f39c12;
             border: 1px solid #f39c12;
         }
-        
+
         .btn-toggle:hover {
             background-color: #f39c12;
             color: white;
         }
-        
+
         .btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
-        
+
         .btn:disabled:hover {
             background-color: #f8f9fa;
             color: inherit;
         }
-        
+
         /* Modal Styles */
         .modal-overlay {
             position: fixed;
@@ -348,7 +349,7 @@
             z-index: 1000;
             padding: 20px;
         }
-        
+
         .modal {
             background-color: white;
             border-radius: 12px;
@@ -358,7 +359,7 @@
             overflow-y: auto;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
         }
-        
+
         .modal-header {
             padding: 20px;
             border-bottom: 1px solid #eef2f7;
@@ -366,13 +367,13 @@
             justify-content: space-between;
             align-items: center;
         }
-        
+
         .modal-title {
             font-size: 1.3rem;
             font-weight: 700;
             color: #2c3e50;
         }
-        
+
         .modal-close {
             background: none;
             border: none;
@@ -386,19 +387,19 @@
             justify-content: center;
             border-radius: 50%;
         }
-        
+
         .modal-close:hover {
             background-color: #f5f7fa;
         }
-        
+
         .modal-body {
             padding: 20px;
         }
-        
+
         .form-group {
             margin-bottom: 20px;
         }
-        
+
         .form-label {
             display: block;
             margin-bottom: 8px;
@@ -406,8 +407,9 @@
             color: #2c3e50;
             font-size: 0.95rem;
         }
-        
-        .form-input, .form-select {
+
+        .form-input,
+        .form-select {
             width: 100%;
             padding: 12px 15px;
             border: 1px solid #d1d8e0;
@@ -415,33 +417,34 @@
             font-size: 1rem;
             transition: border-color 0.2s;
         }
-        
-        .form-input:focus, .form-select:focus {
+
+        .form-input:focus,
+        .form-select:focus {
             outline: none;
             border-color: #3498db;
             box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
         }
-        
+
         .form-checkbox {
             display: flex;
             align-items: center;
             gap: 10px;
         }
-        
+
         .form-checkbox input {
             width: 18px;
             height: 18px;
         }
-        
+
         .form-row {
             display: flex;
             gap: 15px;
         }
-        
+
         .form-row .form-group {
             flex: 1;
         }
-        
+
         .modal-footer {
             padding: 20px;
             border-top: 1px solid #eef2f7;
@@ -449,7 +452,7 @@
             justify-content: flex-end;
             gap: 10px;
         }
-        
+
         .btn-primary {
             background-color: #3498db;
             color: white;
@@ -459,11 +462,11 @@
             font-weight: 600;
             cursor: pointer;
         }
-        
+
         .btn-primary:hover {
             background-color: #2980b9;
         }
-        
+
         .btn-secondary {
             background-color: #95a5a6;
             color: white;
@@ -473,18 +476,18 @@
             font-weight: 600;
             cursor: pointer;
         }
-        
+
         .btn-secondary:hover {
             background-color: #7f8c8d;
         }
-        
+
         .loading {
             text-align: center;
             padding: 40px 20px;
             color: #7f8c8d;
             font-size: 1.1rem;
         }
-        
+
         .loading-spinner {
             border: 3px solid rgba(52, 152, 219, 0.2);
             border-radius: 50%;
@@ -494,29 +497,34 @@
             animation: spin 1s linear infinite;
             margin: 0 auto 15px;
         }
-        
+
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
-        
+
         .empty-state {
             text-align: center;
             padding: 50px 20px;
             color: #7f8c8d;
         }
-        
+
         .empty-state i {
             font-size: 3rem;
             margin-bottom: 15px;
             color: #bdc3c7;
         }
-        
+
         .empty-state h3 {
             margin-bottom: 10px;
             color: #5d6d7e;
         }
-        
+
         footer {
             margin-top: 30px;
             text-align: center;
@@ -525,7 +533,7 @@
             padding-top: 20px;
             border-top: 1px solid #ecf0f1;
         }
-        
+
         .toast {
             position: fixed;
             bottom: 20px;
@@ -543,72 +551,79 @@
             max-width: 90%;
             animation: slideUp 0.3s ease-out;
         }
-        
+
         .toast.success {
             background-color: #27ae60;
         }
-        
+
         .toast.error {
             background-color: #e74c3c;
         }
-        
+
         @keyframes slideUp {
-            from { bottom: -50px; opacity: 0; }
-            to { bottom: 20px; opacity: 1; }
+            from {
+                bottom: -50px;
+                opacity: 0;
+            }
+
+            to {
+                bottom: 20px;
+                opacity: 1;
+            }
         }
-        
+
         .confirmation-modal .modal-body {
             text-align: center;
             padding: 30px 20px;
         }
-        
+
         .confirmation-icon {
             font-size: 3rem;
             color: #e74c3c;
             margin-bottom: 15px;
         }
-        
+
         .confirmation-text {
             margin-bottom: 20px;
             color: #5d6d7e;
             font-size: 1.1rem;
         }
-        
+
         @media (max-width: 480px) {
             .printer-header {
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 15px;
             }
-            
+
             .printer-role {
                 align-self: flex-start;
             }
-            
+
             .detail-row {
                 flex-direction: column;
                 gap: 5px;
             }
-            
+
             .detail-value {
                 text-align: left;
                 max-width: 100%;
             }
-            
+
             .settings-info {
                 justify-content: flex-start;
             }
-            
+
             .printer-actions {
                 flex-wrap: wrap;
                 justify-content: center;
             }
-            
+
             .header-actions {
                 flex-wrap: wrap;
                 justify-content: flex-end;
             }
-            
+
             .form-row {
                 flex-direction: column;
                 gap: 0;
@@ -616,6 +631,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <header>
@@ -637,14 +653,14 @@
                 </button>
             </div>
         </header>
-        
+
         <main id="printersContainer">
             <div class="loading">
                 <div class="loading-spinner"></div>
                 <p>Loading printer data...</p>
             </div>
         </main>
-        
+
         <footer>
             <p>Printer Management System • Connected to local network</p>
         </footer>
@@ -660,12 +676,13 @@
             <div class="modal-body">
                 <form id="printerForm">
                     <input type="hidden" id="printerId" value="">
-                    
+
                     <div class="form-group">
                         <label class="form-label" for="printerName">Printer Name</label>
-                        <input type="text" class="form-input" id="printerName" placeholder="e.g., Cash Counter 1" required>
+                        <input type="text" class="form-input" id="printerName" placeholder="e.g., Cash Counter 1"
+                            required>
                     </div>
-                    
+
                     <div class="form-group">
                         <label class="form-label" for="printerRole">Printer Role</label>
                         <select class="form-select" id="printerRole" required>
@@ -675,31 +692,34 @@
                             <option value="ADMIN">Admin</option>
                         </select>
                     </div>
-                    
+
                     <div class="form-row">
                         <div class="form-group">
                             <label class="form-label" for="printerIp">IP Address</label>
-                            <input type="text" class="form-input" id="printerIp" placeholder="192.168.1.4" required pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$">
+                            <input type="text" class="form-input" id="printerIp" placeholder="192.168.1.4" required
+                                pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$">
                         </div>
-                        
+
                         <div class="form-group">
                             <label class="form-label" for="printerPort">Port</label>
-                            <input type="number" class="form-input" id="printerPort" placeholder="9100" value="9100" required min="1" max="65535">
+                            <input type="number" class="form-input" id="printerPort" placeholder="9100" value="9100"
+                                required min="1" max="65535">
                         </div>
                     </div>
-                    
+
                     <div class="form-row">
                         <div class="form-group">
                             <label class="form-label" for="paperName">Paper Type</label>
                             <input type="text" class="form-input" id="paperName" placeholder="RECEIPT(72mm)" required>
                         </div>
-                        
+
                         <div class="form-group">
                             <label class="form-label" for="paperWidth">Paper Width (px)</label>
-                            <input type="number" class="form-input" id="paperWidth" placeholder="576" value="576" required min="1">
+                            <input type="number" class="form-input" id="paperWidth" placeholder="576" value="576"
+                                required min="1">
                         </div>
                     </div>
-                    
+
                     <div class="form-group">
                         <label class="form-label">Print Settings</label>
                         <div class="form-checkbox">
@@ -707,7 +727,7 @@
                             <label for="cutPaper">Auto Cut After Print</label>
                         </div>
                     </div>
-                    
+
                     <div class="form-group">
                         <div class="form-checkbox">
                             <input type="checkbox" id="printerEnabled" checked>
@@ -739,7 +759,8 @@
                 </div>
                 <div class="modal-footer">
                     <button class="btn-secondary" id="cancelConfirmBtn">Cancel</button>
-                    <button class="btn-primary" id="confirmActionBtn" style="background-color: #e74c3c;">Delete Printer</button>
+                    <button class="btn-primary" id="confirmActionBtn" style="background-color: #e74c3c;">Delete
+                        Printer</button>
                 </div>
             </div>
         </div>
@@ -750,32 +771,32 @@
             "x-client-id": "clt-admin",
             "x-print-key": "123456"
         };
-        
+
         let printersData = {
             printers: []
         };
-        
+
         let currentAction = null;
         let printerToDelete = null;
-        
+
         // DOMContentLoaded event
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             loadPrintersData();
-            
+
             // Add event listeners
             document.getElementById('refreshBtn').addEventListener('click', refreshPrinters);
             document.getElementById('addPrinterBtn').addEventListener('click', openPrinterModal);
             document.getElementById('closeModal').addEventListener('click', closePrinterModal);
             document.getElementById('cancelBtn').addEventListener('click', closePrinterModal);
             document.getElementById('savePrinterBtn').addEventListener('click', savePrinter);
-            
+
             document.getElementById('closeConfirmModal').addEventListener('click', closeConfirmationModal);
             document.getElementById('cancelConfirmBtn').addEventListener('click', closeConfirmationModal);
             document.getElementById('confirmActionBtn').addEventListener('click', executeConfirmedAction);
-            
+
             // Close modals when clicking outside
             document.querySelectorAll('.modal-overlay').forEach(overlay => {
-                overlay.addEventListener('click', function(e) {
+                overlay.addEventListener('click', function (e) {
                     if (e.target === this) {
                         if (this.id === 'printerModal') closePrinterModal();
                         if (this.id === 'confirmationModal') closeConfirmationModal();
@@ -783,7 +804,7 @@
                 });
             });
         });
-        
+
         // Fetch printers from API
         async function loadPrintersData() {
             try {
@@ -793,18 +814,18 @@
                         'Content-Type': 'application/json'
                     }
                 });
-                
+
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}`);
                 }
-                
+
                 const data = await response.json();
                 printersData = data;
                 renderPrinters();
             } catch (error) {
                 console.error('Error loading printers:', error);
                 showToast('Failed to load printers', 'error');
-                
+
                 // Show empty state
                 const container = document.getElementById('printersContainer');
                 container.innerHTML = `
@@ -819,12 +840,12 @@
                 `;
             }
         }
-        
+
         // Render printers in the UI
         function renderPrinters() {
             const container = document.getElementById('printersContainer');
             const statusText = document.getElementById('statusText');
-            
+
             if (!printersData || !printersData.printers || printersData.printers.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
@@ -836,24 +857,24 @@
                         </button></p>
                     </div>
                 `;
-                
+
                 document.getElementById('addFirstPrinterBtn').addEventListener('click', openPrinterModal);
                 statusText.innerHTML = `<i class="fas fa-circle"></i><span>0 Printers</span>`;
                 return;
             }
-            
+
             // Update status badge
             const onlineCount = printersData.printers.filter(p => p.online).length;
             const enabledCount = printersData.printers.filter(p => p.enabled).length;
             statusText.innerHTML = `<i class="fas fa-circle"></i><span>${onlineCount}/${printersData.printers.length} Online • ${enabledCount} Enabled</span>`;
-            
+
             // Generate printer cards
             let printersHTML = '';
-            
+
             printersData.printers.forEach(printer => {
                 const statusClass = printer.online ? '' : 'offline';
                 const connectionStatus = printer.online ? 'Online' : 'Offline';
-                
+
                 // Generate settings badges
                 let settingsHTML = '';
                 if (printer.printSettings) {
@@ -867,11 +888,11 @@
                         settingsHTML += `<span class="setting-badge"><i class="fas fa-bold"></i> Bold Text</span>`;
                     }
                 }
-                
+
                 // Paper info
                 const paperName = printer.paper?.name || 'RECEIPT(72mm)';
                 const paperWidth = printer.paper?.width || 576;
-                
+
                 printersHTML += `
                     <div class="printer-card" id="printer-${printer.id}">
                         <div class="printer-header">
@@ -953,21 +974,21 @@
                     </div>
                 `;
             });
-            
+
             container.innerHTML = printersHTML;
         }
-        
+
         // Modal functions
         function openPrinterModal(printerId = null) {
             const modal = document.getElementById('printerModal');
             const title = document.getElementById('modalTitle');
             const form = document.getElementById('printerForm');
-            
+
             if (printerId) {
                 // Edit mode
                 title.textContent = 'Edit Printer';
                 const printer = printersData.printers.find(p => p.id === printerId);
-                
+
                 if (printer) {
                     document.getElementById('printerId').value = printer.id;
                     document.getElementById('printerName').value = printer.name;
@@ -993,19 +1014,19 @@
                 document.getElementById('cutPaper').checked = true;
                 document.getElementById('printerEnabled').checked = true;
             }
-            
+
             modal.style.display = 'flex';
         }
-        
+
         function closePrinterModal() {
             document.getElementById('printerModal').style.display = 'none';
         }
-        
+
         // Edit printer
         function editPrinter(printerId) {
             openPrinterModal(printerId);
         }
-        
+
         // Save printer (add or update) - using your /api/printer/save endpoint
         async function savePrinter() {
             const idField = document.getElementById('printerId');
@@ -1017,23 +1038,23 @@
             const paperWidth = document.getElementById('paperWidth').value;
             const cutPaper = document.getElementById('cutPaper').checked;
             const enabled = document.getElementById('printerEnabled').checked;
-            
+
             // Validate IP address
             const ipPattern = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
             if (!ipPattern.test(ip)) {
                 showToast('Please enter a valid IP address', 'error');
                 return;
             }
-            
+
             // Validate port
             const portNum = parseInt(port);
             if (portNum < 1 || portNum > 65535) {
                 showToast('Please enter a valid port (1-65535)', 'error');
                 return;
             }
-            
+
             const printerData = {
-                id: idField.value || generatePrinterId(name),
+                id: idField.value || "",
                 name: name,
                 role: role,
                 enabled: enabled,
@@ -1049,10 +1070,10 @@
                     cut: cutPaper
                 }
             };
-            
+
             try {
                 showToast('Saving printer...', 'success');
-                
+
                 // Call your actual API endpoint
                 const response = await fetch('/api/printer/save', {
                     method: 'POST',
@@ -1062,7 +1083,7 @@
                     },
                     body: JSON.stringify(printerData)
                 });
-                
+
                 if (response.ok) {
                     const data = await response.json();
                     if (data.success) {
@@ -1076,13 +1097,13 @@
                     const error = await response.json();
                     showToast(error.error || 'Failed to save printer', 'error');
                 }
-                
+
             } catch (error) {
                 console.error('Error saving printer:', error);
                 showToast('Failed to save printer: ' + error.message, 'error');
             }
         }
-        
+
         // Generate printer ID from name
         function generatePrinterId(name) {
             return name.toLowerCase()
@@ -1090,12 +1111,12 @@
                 .replace(/-+/g, '-')
                 .replace(/^-|-$/g, '') + '-' + Date.now().toString().slice(-6);
         }
-        
+
         // Test printer - using your /api/printer/test endpoint
         async function testPrinter(printerId) {
             try {
                 showToast('Sending test print...', 'success');
-                
+
                 const response = await fetch('/api/printer/test', {
                     method: 'POST',
                     headers: {
@@ -1104,9 +1125,9 @@
                     },
                     body: JSON.stringify({ printerId: printerId })
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (data.success) {
                     if (data.printed) {
                         showToast('Test print sent successfully', 'success');
@@ -1116,18 +1137,18 @@
                 } else {
                     showToast(data.error || 'Test print failed', 'error');
                 }
-                
+
                 // Refresh printer status after test
                 setTimeout(() => {
                     refreshPrinters();
                 }, 1000);
-                
+
             } catch (error) {
                 console.error('Error testing printer:', error);
                 showToast('Failed to send test print', 'error');
             }
         }
-        
+
         // Toggle printer enabled/disabled - using the same save API
         async function togglePrinter(printerId, currentStatus) {
             try {
@@ -1136,10 +1157,10 @@
                     showToast('Printer not found', 'error');
                     return;
                 }
-                
+
                 // Toggle the enabled status
                 printer.enabled = !currentStatus;
-                
+
                 // Save the updated printer using the save API
                 const response = await fetch('/api/printer/save', {
                     method: 'POST',
@@ -1149,7 +1170,7 @@
                     },
                     body: JSON.stringify(printer)
                 });
-                
+
                 if (response.ok) {
                     const data = await response.json();
                     if (data.success) {
@@ -1161,36 +1182,36 @@
                 } else {
                     showToast('Failed to update printer', 'error');
                 }
-                
+
             } catch (error) {
                 console.error('Error toggling printer:', error);
                 showToast('Failed to toggle printer', 'error');
             }
         }
-        
+
         // Delete printer - using your /api/printer/delete endpoint
         function deletePrinter(printerId, printerName) {
             printerToDelete = printerId;
             document.getElementById('confirmText').textContent = `Are you sure you want to delete "${printerName}"? This action cannot be undone.`;
             document.getElementById('confirmActionBtn').innerHTML = '<i class="fas fa-trash"></i> Delete Printer';
             document.getElementById('confirmActionBtn').style.backgroundColor = '#e74c3c';
-            
+
             currentAction = 'delete';
             document.getElementById('confirmationModal').style.display = 'flex';
         }
-        
+
         // Close confirmation modal
         function closeConfirmationModal() {
             document.getElementById('confirmationModal').style.display = 'none';
             printerToDelete = null;
         }
-        
+
         // Execute confirmed action (delete) - using your /api/printer/delete endpoint
         async function executeConfirmedAction() {
             if (currentAction === 'delete' && printerToDelete) {
                 try {
                     showToast('Deleting printer...', 'success');
-                    
+
                     const response = await fetch('/api/printer/delete', {
                         method: 'POST',
                         headers: {
@@ -1199,9 +1220,9 @@
                         },
                         body: JSON.stringify({ id: printerToDelete })
                     });
-                    
+
                     const data = await response.json();
-                    
+
                     if (data.success) {
                         showToast('Printer deleted successfully', 'success');
                         closeConfirmationModal();
@@ -1210,7 +1231,7 @@
                         showToast(data.error || 'Failed to delete printer', 'error');
                         closeConfirmationModal();
                     }
-                    
+
                 } catch (error) {
                     console.error('Error deleting printer:', error);
                     showToast('Failed to delete printer', 'error');
@@ -1218,12 +1239,12 @@
                 }
             }
         }
-        
+
         // Refresh printers
         async function refreshPrinters() {
             const container = document.getElementById('printersContainer');
             const refreshBtn = document.getElementById('refreshBtn');
-            
+
             // Show loading state
             container.innerHTML = `
                 <div class="loading">
@@ -1231,11 +1252,11 @@
                     <p>Refreshing printer data...</p>
                 </div>
             `;
-            
+
             // Disable refresh button during load
             refreshBtn.disabled = true;
             refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing';
-            
+
             try {
                 await loadPrintersData();
                 showToast('Printer list refreshed', 'success');
@@ -1247,13 +1268,13 @@
                 refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
             }
         }
-        
+
         // Show toast notification
         function showToast(message, type = 'success') {
             // Remove existing toasts
             const existingToasts = document.querySelectorAll('.toast');
             existingToasts.forEach(toast => toast.remove());
-            
+
             // Create new toast
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
@@ -1261,9 +1282,9 @@
                 <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
                 <span>${message}</span>
             `;
-            
+
             document.body.appendChild(toast);
-            
+
             // Remove toast after 3 seconds
             setTimeout(() => {
                 if (toast.parentNode) {
@@ -1275,6 +1296,24 @@
                 }
             }, 3000);
         }
+
+        // Intercept Backspace & Escape key for navigation back to dashboard
+        document.addEventListener('keydown', (e) => {
+            const modal = document.getElementById('printerModal');
+            if (modal && modal.style.display !== 'none' && e.key === 'Escape') {
+                closeModal();
+                return;
+            }
+
+            const activeEl = document.activeElement;
+            const isInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable || activeEl.tagName === 'SELECT');
+
+            if ((e.key === 'Backspace' && !isInput) || (e.key === 'Escape' && !isInput)) {
+                e.preventDefault();
+                window.location.href = 'dashboard.html';
+            }
+        });
     </script>
 </body>
+
 </html>
