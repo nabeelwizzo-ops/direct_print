@@ -7,10 +7,24 @@ const fs = require("fs");
 const path = require("path");
 const cors = require("cors");
 const net = require("net");
+const os = require("os");
 
 const { ThermalPrinter, PrinterTypes } = require("node-thermal-printer");
 
 const PUBLIC_FOLDER = path.join(__dirname, "..", "public");
+
+function getNetworkIps() {
+  const interfaces = os.networkInterfaces();
+  const ips = [];
+  for (const name of Object.keys(interfaces)) {
+    for (const netIf of interfaces[name]) {
+      if (netIf.family === "IPv4" && !netIf.internal) {
+        ips.push(netIf.address);
+      }
+    }
+  }
+  return ips;
+}
 
 // #######----------------CUSTOM_INVOICE enable this Log----------######
 // your public folder
@@ -42,6 +56,8 @@ app.use(express.static(path.join(projectRoot, "public")));
 ================================ */
 
 const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || "0.0.0.0";
+const DOMAIN = process.env.DOMAIN || process.env.BASE_URL || "";
 const ENABLE_AUTH = process.env.ENABLE_AUTH === "true";
 
 /* ===============================
@@ -56,23 +72,88 @@ const CLIENT_FILE = path.join(CONFIG, "clients.json");
 const SERVER_ID_FILE = path.join(CONFIG, "server.id");
 
 /* ===============================
-   LOGS
+   SYSTEM LOGGING ENGINE
 ================================ */
 
-// let clients = [];
+const LOG_FILE = path.join(CONFIG, "system.log");
+const MAX_IN_MEMORY_LOGS = 500;
+let systemLogs = [];
 
-// wss.on("connection", (ws) => {
-//   clients.push(ws);
-//   ws.on("close", () => {
-//     clients = clients.filter(c => c !== ws);
-//   });
-// });
+function loadLogHistory() {
+  try {
+    if (fs.existsSync(LOG_FILE)) {
+      const lines = fs.readFileSync(LOG_FILE, "utf8").split("\n").filter(Boolean);
+      systemLogs = lines.slice(-MAX_IN_MEMORY_LOGS).map((line) => {
+        try {
+          return JSON.parse(line);
+        } catch {
+          return null;
+        }
+      }).filter(Boolean);
+    }
+  } catch (err) {
+    console.error("Error loading log history:", err.message);
+  }
+}
 
-// function sendLogToClients(message) {
-//   clients.forEach(ws => {
-//     ws.send(message);
-//   });
-// }
+loadLogHistory();
+
+function addLogEntry(level, type, message, details = {}) {
+  const entry = {
+    id: `log_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+    timestamp: new Date().toISOString(),
+    level: String(level).toUpperCase(),
+    type: String(type).toUpperCase(),
+    message: message,
+    details: details,
+  };
+
+  const timeStr = new Date().toLocaleTimeString();
+  console.log(`[${timeStr}] [${entry.level}] [${entry.type}] ${message}`);
+
+  systemLogs.unshift(entry);
+  if (systemLogs.length > MAX_IN_MEMORY_LOGS) {
+    systemLogs = systemLogs.slice(0, MAX_IN_MEMORY_LOGS);
+  }
+
+  try {
+    fs.appendFile(LOG_FILE, JSON.stringify(entry) + "\n", (err) => {
+      if (err) console.error("Error appending log:", err.message);
+    });
+  } catch (err) {
+    console.error("Log append error:", err.message);
+  }
+
+  return entry;
+}
+
+function analyzePrintFailure(printerIp, printerPort, originalError = "") {
+  const systemIps = getNetworkIps();
+  const systemIp = systemIps[0] || "0.0.0.0";
+
+  let subnetMismatch = false;
+  if (printerIp && systemIp && systemIp !== "0.0.0.0") {
+    const sysParts = systemIp.split(".").slice(0, 3).join(".");
+    const prnParts = printerIp.split(".").slice(0, 3).join(".");
+    if (sysParts !== prnParts) {
+      subnetMismatch = true;
+    }
+  }
+
+  return {
+    printerIp: printerIp,
+    printerPort: printerPort || 9100,
+    systemIp: systemIp,
+    allSystemIps: systemIps,
+    subnetMismatch: subnetMismatch,
+    errorReason: originalError || "Printer Connection Failed",
+    possibleCause: subnetMismatch
+      ? `Subnet Mismatch! System is on (${systemIp}) while printer is on (${printerIp}).`
+      : systemIp === "0.0.0.0" || systemIps.length === 0
+        ? "No active Wi-Fi / Ethernet connection on server."
+        : `TCP Port ${printerPort || 9100} unreachable. Check printer IP & power.`,
+  };
+}
 
 /* ===============================
    HELPERS
@@ -128,6 +209,66 @@ function getServerId() {
 const SERVER_ID = getServerId();
 
 /* ===============================
+   CLOUD PRINT AGENT (MODE 1: MQTT PAIR CODE)
+================================ */
+const CloudPrintAgent = require("./cloud_agent");
+
+const cloudAgent = new CloudPrintAgent({
+  serverId: SERVER_ID,
+  brokerUrl: process.env.MQTT_BROKER || "wss://broker.emqx.io:8084/mqtt",
+  addLogEntry: addLogEntry,
+  onPrintJob: async ({ printerId, data }) => {
+    try {
+      const printers = loadPrinters();
+      let targetPrinter = null;
+      if (printerId) {
+        targetPrinter = printers.find(
+          (p) =>
+            p.enabled &&
+            (p.id.toLowerCase() === printerId.toLowerCase() ||
+              p.name?.toLowerCase() === printerId.toLowerCase())
+        );
+      }
+      if (!targetPrinter) {
+        targetPrinter = printers.find((p) => p.enabled);
+      }
+
+      if (!targetPrinter) {
+        addLogEntry("ERROR", "CLOUD_PRINT", "Cloud print failed: No enabled printer found", {
+          pairCode: SERVER_ID,
+          requestedPrinter: printerId,
+        });
+        return;
+      }
+
+      addLogEntry(
+        "INFO",
+        "CLOUD_PRINT",
+        `Dispatching cloud print to "${targetPrinter.name}" (${targetPrinter.connection?.ip})`,
+        {
+          pairCode: SERVER_ID,
+          printer: targetPrinter.name,
+          mode: data.isInvoiceData?.isInvoice ? "INVOICE" : "DATA",
+        }
+      );
+
+      processPrintJob(targetPrinter, data);
+    } catch (err) {
+      addLogEntry("ERROR", "CLOUD_PRINT", `Cloud print dispatch error: ${err.message}`, {
+        error: err.message,
+      });
+    }
+  },
+});
+
+try {
+  cloudAgent.start();
+} catch (e) {
+  console.error("Failed to start CloudPrintAgent:", e.message);
+}
+
+
+/* ===============================
    AUTH
 ================================ */
 
@@ -138,6 +279,12 @@ function authRequired(req, res, next) {
   const key = req.headers["x-print-key"];
 
   if (!id || !key) {
+    addLogEntry(
+      "WARN",
+      "AUTH",
+      `Authentication rejected: Missing headers (x-client-id or x-print-key) from ${req.ip || "client"}`,
+      { ip: req.ip, headers: req.headers }
+    );
     return res.status(401).json({ error: "Client auth required" });
   }
 
@@ -148,6 +295,12 @@ function authRequired(req, res, next) {
   );
 
   if (!ok) {
+    addLogEntry(
+      "WARN",
+      "AUTH",
+      `Authentication rejected: Invalid credentials for client "${id}" from ${req.ip || "client"}`,
+      { ip: req.ip, clientId: id }
+    );
     return res.status(403).json({ error: "Invalid client" });
   }
 
@@ -155,38 +308,44 @@ function authRequired(req, res, next) {
 }
 
 /* ===============================
-   PRINTER STATUS
+   CLIENT MANAGEMENT API
 ================================ */
 
-function isPrinterOnline(ip, port) {
-  return new Promise((resolve) => {
-    const socket = new net.Socket();
-    socket.setTimeout(1500);
-    socket.once("connect", () => {
-      socket.destroy();
-      resolve(true);
-    });
-    socket.once("error", () => resolve(false));
-    socket.once("timeout", () => resolve(false));
-    socket.connect(port, ip);
-  });
-}
+app.get("/api/clients", (req, res) => {
+  const clients = loadClients();
+  res.json({ success: true, clients });
+});
 
-/* ===============================
-   API : PRINTERS
-================================ */
-
-app.get("/api/printers", async (req, res) => {
-  const printers = loadPrinters();
-
-  const result = await Promise.all(
-    printers.map(async (p) => ({
-      ...p,
-      online: await isPrinterOnline(p.connection.ip, p.connection.port),
-    })),
-  );
-
-  res.json({ printers: result });
+app.post("/api/client/create", (req, res) => {
+  try {
+    const clients = loadClients();
+    const newId = `clt-${Math.random().toString(36).substring(2, 8)}`;
+    const newPin = Math.floor(100000 + Math.random() * 900000).toString();
+    const newClient = {
+      id: newId,
+      pin: newPin,
+      role: req.body?.role || "CLIENT",
+      enabled: true,
+      createdAt: new Date().toISOString(),
+    };
+    clients.push(newClient);
+    fs.writeFileSync(CLIENT_FILE, JSON.stringify({ clients }, null, 2));
+    addLogEntry(
+      "INFO",
+      "CLIENT_MGMT",
+      `New client registered: ID "${newClient.id}" (${newClient.role})`,
+      { client: newClient }
+    );
+    res.json(newClient);
+  } catch (err) {
+    addLogEntry(
+      "ERROR",
+      "CLIENT_MGMT",
+      `Failed to create client: ${err.message}`,
+      { error: err.message }
+    );
+    res.status(500).json({ error: err.message });
+  }
 });
 
 /* ===============================
@@ -261,6 +420,12 @@ app.post("/print", authRequired, (req, res) => {
 
     if (!printerId) {
       console.log("❌ Missing x-printer-id");
+      addLogEntry(
+        "ERROR",
+        "PRINT",
+        "Print job rejected: 'x-printer-id' header is missing",
+        { ip: req.ip, headers: req.headers }
+      );
       return res.status(400).json({ error: "x-printer-id missing" });
     }
 
@@ -273,8 +438,46 @@ app.post("/print", authRequired, (req, res) => {
 
     if (!printerCfg) {
       console.log("❌ Printer not found");
+      addLogEntry(
+        "ERROR",
+        "PRINT",
+        `Print job rejected: Printer "${printerId}" not found or disabled`,
+        {
+          printerId: printerId,
+          availablePrinters: loadPrinters().map((p) => ({ id: p.id, name: p.name, enabled: p.enabled })),
+        }
+      );
       return res.status(404).json({ error: "Printer not found or disabled" });
     }
+
+    const body = req.body || {};
+    const mode = body.isInvoiceData?.isInvoice
+      ? "INVOICE"
+      : body.isInvoiceData?.isKot
+      ? "KOT"
+      : body.isInvoiceData?.isALLKot
+      ? "ALL_KOT"
+      : body.text
+      ? "TEXT"
+      : "UNKNOWN";
+
+    const billNo = body.master?.BillNo || (body.table && body.table[0]?.BillNo) || null;
+    const partyName = body.master?.BillPartyName || null;
+
+    addLogEntry(
+      "INFO",
+      "PRINT",
+      `Print request accepted [${mode}] for printer "${printerCfg.name}" (${printerCfg.connection?.ip}:${printerCfg.connection?.port})${billNo ? ` - Bill #${billNo}` : ""}`,
+      {
+        printerId: printerCfg.id,
+        printerName: printerCfg.name,
+        targetIp: printerCfg.connection?.ip,
+        targetPort: printerCfg.connection?.port,
+        mode: mode,
+        billNo: billNo,
+        party: partyName,
+      }
+    );
 
     // ✅ RESPOND IMMEDIATELY
     res.json({
@@ -286,11 +489,10 @@ app.post("/print", authRequired, (req, res) => {
     console.log("✅ HTTP response sent in", Date.now() - start, "ms");
 
     // 🔥 PRINT IN BACKGROUND
-    processPrintJob(printerCfg, req.body);
-
-    // processPrintJob2(printerCfg, req.body);
+    processPrintJob(printerCfg, body);
   } catch (err) {
     console.error("❌ API ERROR:", err);
+    addLogEntry("ERROR", "PRINT", `Print API Exception: ${err.message}`, { error: err.message });
   }
 });
 
@@ -302,10 +504,39 @@ async function processPrintJob(printerCfg, body) {
 
     if (body.isInvoiceData?.isInvoice) {
       console.log("Mode: INVOICE");
+      const billNo = body.master?.BillNo || (body.table && body.table[0]?.BillNo) || "N/A";
+      const party = body.master?.BillPartyName || "Cash";
+      const netTotal = body.master?.BillNetTotalField || body.master?.NetTotal || "";
+
       const printer = await createPrinter(printerCfg);
-      if (!printer) return;
+      if (!printer) {
+        const diag = analyzePrintFailure(
+          printerCfg.connection?.ip,
+          printerCfg.connection?.port || 9100,
+          "Printer offline or connection timeout"
+        );
+        addLogEntry(
+          "ERROR",
+          "PRINT",
+          `Invoice Print Failed: Printer "${printerCfg.name}" (${printerCfg.connection?.ip}:${printerCfg.connection?.port || 9100}) is OFFLINE`,
+          diag
+        );
+        return;
+      }
+
       await printInvoice(printer, body);
-      //await printInvoice_custom(printer, body);
+      addLogEntry(
+        "SUCCESS",
+        "PRINT",
+        `Invoice #${billNo} (${party}) printed successfully to "${printerCfg.name}" (${printerCfg.connection?.ip})`,
+        {
+          billNo,
+          party,
+          netTotal,
+          printer: printerCfg.name,
+          ip: printerCfg.connection?.ip,
+        }
+      );
     } else if (body.isInvoiceData?.isKot) {
       // Handle ALL KOT cases with smart routing
       console.log("Mode: KOT ROUTING (KOT or ALL KOT or BOTH)");
@@ -319,19 +550,59 @@ async function processPrintJob(printerCfg, body) {
     } else if (body.text) {
       console.log("Mode: TEXT");
       const printer = await createPrinter(printerCfg);
-      if (!printer) return;
+      if (!printer) {
+        const diag = analyzePrintFailure(
+          printerCfg.connection?.ip,
+          printerCfg.connection?.port || 9100,
+          "Printer offline or connection timeout"
+        );
+        addLogEntry(
+          "ERROR",
+          "PRINT",
+          `Text Print Failed: Printer "${printerCfg.name}" (${printerCfg.connection?.ip}:${printerCfg.connection?.port || 9100}) is OFFLINE`,
+          diag
+        );
+        return;
+      }
 
       printer.println(body.text);
       printer.cut();
       await printer.execute();
+      addLogEntry(
+        "SUCCESS",
+        "PRINT",
+        `Text print completed successfully on "${printerCfg.name}" (${printerCfg.connection?.ip})`,
+        {
+          printer: printerCfg.name,
+          ip: printerCfg.connection?.ip,
+          textLength: body.text?.length,
+        }
+      );
     } else {
       console.log("❌ Unsupported payload", JSON.stringify(body, null, 2));
+      addLogEntry(
+        "WARN",
+        "PRINT",
+        `Unsupported print payload received for printer "${printerCfg.name}"`,
+        { keys: Object.keys(body || {}) }
+      );
       return;
     }
 
     console.log("✅ PRINT SUCCESS");
   } catch (err) {
     console.error("❌ PRINT FAILED:", err.message);
+    const diag = analyzePrintFailure(
+      printerCfg.connection?.ip,
+      printerCfg.connection?.port || 9100,
+      err.message
+    );
+    addLogEntry(
+      "ERROR",
+      "PRINT",
+      `Print execution failed on "${printerCfg.name}": ${err.message}`,
+      diag
+    );
   }
 
   console.log("--- PRINT JOB END ---\n");
@@ -341,7 +612,7 @@ async function processPrintJob(printerCfg, body) {
 async function createPrinter(printerCfg) {
   const printer = new ThermalPrinter({
     type: PrinterTypes.EPSON,
-    interface: `tcp://${printerCfg.connection.ip}:${printerCfg.connection.port}`,
+    interface: `tcp://${printerCfg.connection?.ip}:${printerCfg.connection?.port || 9100}`,
     options: { timeout: 15000 },
   });
 
@@ -433,15 +704,36 @@ async function printInvoice(printer, data) {
     "Date    : " + (master.BillDate || "") + " " + (master.BillTime || ""),
   );
 
-  if (master.BillPartyName) {
-    printer.println("Party   : " + master.BillPartyName);
+  // If BillPartyName is "3", 3, empty, or "Cash", treat as "Cash"
+  if (
+    !master.BillPartyName ||
+    String(master.BillPartyName).trim() === "3" ||
+    String(master.BillPartyName).trim().toLowerCase() === "cash"
+  ) {
+    master.BillPartyName = "Cash";
   }
 
-  if (master.BillPartyName !== "Cash" || master.BillPartyName !== "3") {
-    printer.println("Add: " + master.Address1, "");
-    printer.println("Contact: " + master.Ph, "");
-    printer.println("Tax-No: " + master.TinNo, "");
+  printer.println("Party   : " + master.BillPartyName);
+
+  if (master.BillPartyName !== "Cash") {
+    if (master.Address1 && master.Address1 !== "null") {
+      printer.println("Address: " + master.Address1);
+    }
+    if (master.Ph && master.Ph !== "null") {
+      printer.println("Contact: " + master.Ph);
+    }
+    if (master.TinNo && master.TinNo !== "null") {
+      printer.println("Tax No : " + master.TinNo);
+    }
   }
+
+  if (master.table && master.table !== "null") {
+    printer.println("Table No: " + master.table);
+  }
+  if (master.OrderNo !== undefined && master.OrderNo !== null && master.OrderNo !== "null") {
+    printer.println("Token No: " + master.OrderNo);
+  }
+
 
   printer.drawLine();
 
@@ -622,8 +914,15 @@ async function printInvoice_custom2(printer, data) {
     "Date : " + (master.BillDate || ""),
   );
 
+  const billParty =
+    !master.BillPartyName ||
+    String(master.BillPartyName).trim() === "3" ||
+    String(master.BillPartyName).trim().toLowerCase() === "cash"
+      ? "Cash"
+      : master.BillPartyName;
+
   printer.leftRight(
-    "Party : " + (master.BillPartyName || "Cash"),
+    "Party : " + billParty,
     "Time : " + (master.BillTime || ""),
   );
 
@@ -793,8 +1092,15 @@ async function printInvoice_custom(printer, data) {
       "Date : " + (master.BillDate || ""),
     );
 
+    const billParty =
+      !master.BillPartyName ||
+      String(master.BillPartyName).trim() === "3" ||
+      String(master.BillPartyName).trim().toLowerCase() === "cash"
+        ? "Cash"
+        : master.BillPartyName;
+
     printer.leftRight(
-      "Party : " + (master.BillPartyName || "Cash"),
+      "Party : " + billParty,
       "Time : " + (master.BillTime || ""),
     );
 
@@ -1006,6 +1312,38 @@ async function all_kot_print2(printer, data) {
         { text: "", align: "CENTER", cols: 8 },
       ]);
     }
+
+    /* =========================
+       NOTES (Null/empty allenkil mathram)
+    ========================= */
+    if (
+      it.notes !== null &&
+      it.notes !== undefined &&
+      String(it.notes).trim() !== "" &&
+      String(it.notes).toLowerCase() !== "null"
+    ) {
+      const notes = String(it.notes)
+        .replace(/\\n/g, "\n")
+        .split(/[\r\n,;|]+|\s{2,}/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .join(" | ");
+
+      if (notes) {
+        printer.tableCustom([
+          {
+            text: "",
+            align: "LEFT",
+            cols: 3,
+          },
+          {
+            text: "* " + notes,
+            align: "LEFT",
+            cols: 45,
+          },
+        ]);
+      }
+    }
   });
 
   printer.drawLine();
@@ -1086,7 +1424,7 @@ async function all_kot_print(printer, data) {
   /* =========================
      STAFF & TABLE
   ========================= */
-  printer.println("BILL  NO: " + (master.OrderNo || "0"));
+  printer.println("BILL  NO: " + (master.BillNo || "0"));
   printer.println("STAFF: " + (master.Lorry || "NIL"));
   printer.println("TABLE NO: " + (master.table || "0"));
 
@@ -1177,7 +1515,7 @@ async function all_kot_print(printer, data) {
     }
 
     /* =========================
-       NOTES
+       NOTES (Null/empty allenkil mathram)
     ========================= */
     const notes = kot?.notes;
 
@@ -1187,25 +1525,27 @@ async function all_kot_print(printer, data) {
       String(notes).trim() !== "" &&
       String(notes).toLowerCase() !== "null"
     ) {
-
       const formattedNotes = String(notes)
-        .replace(/\\n/g, ", ")
-        .replace(/\r?\n/g, ", ")
-        .replace(/\s+/g, " ")
-        .trim();
+        .replace(/\\n/g, "\n")
+        .split(/[\r\n,;|]+|\s{2,}/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .join(" | ");
 
-      printer.tableCustom([
-        {
-          text: "",
-          align: "LEFT",
-          cols: 3,
-        },
-        {
-          text: "* " + formattedNotes,
-          align: "LEFT",
-          cols: 45,
-        },
-      ]);
+      if (formattedNotes) {
+        printer.tableCustom([
+          {
+            text: "",
+            align: "LEFT",
+            cols: 3,
+          },
+          {
+            text: "* " + formattedNotes,
+            align: "LEFT",
+            cols: 45,
+          },
+        ]);
+      }
     }
 
   });
@@ -1282,7 +1622,7 @@ async function kot_print(printer, data) {
   /* =========================
      STAFF & TABLE
   ========================= */
-  printer.println("BILL  NO: " + (master.OrderNo || "0"));
+  printer.println("BILL  NO: " + (master.BillNo || "0"));
   printer.println("STAFF: " + (master.Lorry || "NIL"));
   printer.println("TABLE NO: " + (master.table || "0"));
 
@@ -1364,24 +1704,27 @@ async function kot_print(printer, data) {
       String(it.notes).trim() !== "" &&
       String(it.notes).toLowerCase() !== "null"
     ) {
-
       const notes = String(it.notes)
-        .replace(/\\n/g, ", ")
-        .replace(/\r?\n/g, ", ")
-        .trim();
+        .replace(/\\n/g, "\n")
+        .split(/[\r\n,;|]+|\s{2,}/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .join(" | ");
 
-      printer.tableCustom([
-        {
-          text: "",
-          align: "LEFT",
-          cols: 3,
-        },
-        {
-          text: "* " + notes,
-          align: "LEFT",
-          cols: 45,
-        },
-      ]);
+      if (notes) {
+        printer.tableCustom([
+          {
+            text: "",
+            align: "LEFT",
+            cols: 3,
+          },
+          {
+            text: "* " + notes,
+            align: "LEFT",
+            cols: 45,
+          },
+        ]);
+      }
     }
 
   });
@@ -1516,6 +1859,7 @@ app.post("/testprint", authRequired, (req, res) => {
     const printerHeader = req.headers["x-printer-id"];
 
     if (!printerHeader) {
+      addLogEntry("ERROR", "PRINT", "Test print rejected: Missing 'x-printer-id' header");
       return res.status(400).json({ error: "x-printer-id missing" });
     }
 
@@ -1532,8 +1876,16 @@ app.post("/testprint", authRequired, (req, res) => {
     );
 
     if (!printers.length) {
+      addLogEntry("ERROR", "PRINT", `Test print rejected: No matching printers found for "${printerHeader}"`);
       return res.status(404).json({ error: "No matching printers found" });
     }
+
+    addLogEntry(
+      "INFO",
+      "PRINT",
+      `Multi-printer test print accepted for: ${printers.map((p) => p.name).join(", ")}`,
+      { printerNames: printers.map((p) => p.name) }
+    );
 
     // ✅ RESPOND IMMEDIATELY
     res.json({
@@ -1550,6 +1902,7 @@ app.post("/testprint", authRequired, (req, res) => {
     });
   } catch (err) {
     console.error("❌ API ERROR:", err);
+    addLogEntry("ERROR", "PRINT", `Test print API error: ${err.message}`);
   }
 });
 
@@ -1560,7 +1913,7 @@ async function test_processPrintJob(printerCfg, body) {
   try {
     const printer = new ThermalPrinter({
       type: PrinterTypes.EPSON,
-      interface: `tcp://${printerCfg.connection.ip}:${printerCfg.connection.port}`,
+      interface: `tcp://${printerCfg.connection?.ip}:${printerCfg.connection?.port || 9100}`,
       options: { timeout: 15000 },
     });
 
@@ -1569,6 +1922,13 @@ async function test_processPrintJob(printerCfg, body) {
 
     if (!connected) {
       console.log(`[${printerCfg.name}] ❌ Printer offline`);
+      const diag = analyzePrintFailure(printerCfg.connection?.ip, printerCfg.connection?.port || 9100, "Printer offline");
+      addLogEntry(
+        "ERROR",
+        "PRINT",
+        `Test Print Failed: "${printerCfg.name}" (${printerCfg.connection?.ip}) is OFFLINE`,
+        diag
+      );
       return;
     }
 
@@ -1585,6 +1945,11 @@ async function test_processPrintJob(printerCfg, body) {
       console.log(
         `[${printerCfg.name}] ❌ No text for role ${printerCfg.role}`,
       );
+      addLogEntry(
+        "WARN",
+        "PRINT",
+        `Test print on "${printerCfg.name}": No text provided for role ${printerCfg.role}`
+      );
       return;
     }
 
@@ -1597,8 +1962,21 @@ async function test_processPrintJob(printerCfg, body) {
     await printer.execute();
 
     console.log(`[${printerCfg.name}] ✅ PRINT SUCCESS`);
+    addLogEntry(
+      "SUCCESS",
+      "PRINT",
+      `Test print completed successfully on "${printerCfg.name}" (${printerCfg.role})`,
+      { printer: printerCfg.name, role: printerCfg.role }
+    );
   } catch (err) {
     console.error(`[${printerCfg.name}] ❌ PRINT FAILED:`, err.message);
+    const diag = analyzePrintFailure(printerCfg.connection?.ip, printerCfg.connection?.port || 9100, err.message);
+    addLogEntry(
+      "ERROR",
+      "PRINT",
+      `Test print error on "${printerCfg.name}": ${err.message}`,
+      diag
+    );
   }
 
   console.log(`--- PRINT JOB END (${printerCfg.name}) ---\n`);
@@ -1634,6 +2012,7 @@ async function routeKotToPrinters(body) {
 
   const isKot = body.isInvoiceData?.isKot;
   const isALLKot = body.isInvoiceData?.isALLKot;
+  const tableNo = body.master?.BillTableNo || body.master?.TableNo || body.tableNo || "";
 
   // 1️⃣ HANDLE KOT (Send individual items to respective Kitchen printers based on item IP)
   if (isKot || (!isKot && !isALLKot)) {
@@ -1646,6 +2025,12 @@ async function routeKotToPrinters(body) {
 
       if (!ip) {
         console.log("❌ No printer IP found for item:", item.itemname);
+        addLogEntry(
+          "WARN",
+          "PRINT",
+          `KOT Item "${item.itemname || item.ItemNameTextField || 'Unknown'}" has no kitchen printer IP assigned`,
+          { item }
+        );
         return;
       }
 
@@ -1665,6 +2050,13 @@ async function routeKotToPrinters(body) {
 
       if (!printerCfg) {
         console.log("❌ No kitchen printer configuration found for IP:", ip);
+        const diag = analyzePrintFailure(ip, 9100, "Printer not configured in system");
+        addLogEntry(
+          "WARN",
+          "PRINT",
+          `No Kitchen printer configured in settings for IP ${ip} (${items.length} items skipped)`,
+          diag
+        );
         continue;
       }
 
@@ -1674,7 +2066,16 @@ async function routeKotToPrinters(body) {
 
       try {
         const printer = await createPrinter(printerCfg);
-        if (!printer) continue;
+        if (!printer) {
+          const diag = analyzePrintFailure(ip, printerCfg.connection?.port || 9100, "Printer offline");
+          addLogEntry(
+            "ERROR",
+            "PRINT",
+            `KOT Print Failed: Kitchen printer "${printerCfg.name}" (${ip}) is OFFLINE`,
+            diag
+          );
+          continue;
+        }
 
         const newBody = {
           ...body,
@@ -1684,10 +2085,29 @@ async function routeKotToPrinters(body) {
         await kot_print(printer, newBody);
         await printer.execute();
         console.log(`✅ KOT Printed successfully to ${printerCfg.name}`);
+        addLogEntry(
+          "SUCCESS",
+          "PRINT",
+          `KOT (${items.length} items${tableNo ? `, Table ${tableNo}` : ""}) printed successfully to "${printerCfg.name}" (${ip})`,
+          {
+            printer: printerCfg.name,
+            ip: ip,
+            itemCount: items.length,
+            table: tableNo,
+            items: items.map(i => i.itemname || i.ItemNameTextField || ""),
+          }
+        );
       } catch (err) {
         console.error(
           `❌ Failed to print KOT to ${printerCfg.name}:`,
           err.message,
+        );
+        const diag = analyzePrintFailure(ip, printerCfg.connection?.port || 9100, err.message);
+        addLogEntry(
+          "ERROR",
+          "PRINT",
+          `KOT print error on "${printerCfg.name}" (${ip}): ${err.message}`,
+          diag
         );
       }
     }
@@ -1700,25 +2120,65 @@ async function routeKotToPrinters(body) {
 
     if (!cashierPrinters || cashierPrinters.length === 0) {
       console.log("⚠️ No CASHIER printer found for ALL KOT printing!");
+      addLogEntry(
+        "WARN",
+        "PRINT",
+        "ALL KOT Warning: No active CASHIER printer configured for ALL KOT printing",
+        { table: tableNo }
+      );
     } else {
       for (const cashierCfg of cashierPrinters) {
         console.log(
-          `�️ Printing ALL KOT to CASHIER printer: ${cashierCfg.name} (${cashierCfg.connection.ip})`,
+          `🖨️ Printing ALL KOT to CASHIER printer: ${cashierCfg.name} (${cashierCfg.connection.ip})`,
         );
 
         try {
           const printer = await createPrinter(cashierCfg);
-          if (!printer) continue;
+          if (!printer) {
+            const diag = analyzePrintFailure(
+              cashierCfg.connection?.ip,
+              cashierCfg.connection?.port || 9100,
+              "Cashier printer offline"
+            );
+            addLogEntry(
+              "ERROR",
+              "PRINT",
+              `ALL KOT Print Failed: Cashier printer "${cashierCfg.name}" (${cashierCfg.connection.ip}) is OFFLINE`,
+              diag
+            );
+            continue;
+          }
 
           await all_kot_print(printer, body);
           await printer.execute();
           console.log(
             `✅ ALL KOT Printed successfully to CASHIER printer: ${cashierCfg.name}`,
           );
+          addLogEntry(
+            "SUCCESS",
+            "PRINT",
+            `ALL KOT${tableNo ? ` (Table ${tableNo})` : ""} printed successfully to Cashier printer "${cashierCfg.name}" (${cashierCfg.connection.ip})`,
+            {
+              printer: cashierCfg.name,
+              ip: cashierCfg.connection.ip,
+              table: tableNo,
+            }
+          );
         } catch (err) {
           console.error(
             `❌ Failed to print ALL KOT to CASHIER printer ${cashierCfg.name}:`,
             err.message,
+          );
+          const diag = analyzePrintFailure(
+            cashierCfg.connection?.ip,
+            cashierCfg.connection?.port || 9100,
+            err.message
+          );
+          addLogEntry(
+            "ERROR",
+            "PRINT",
+            `ALL KOT print error on "${cashierCfg.name}" (${cashierCfg.connection.ip}): ${err.message}`,
+            diag
           );
         }
       }
@@ -1786,21 +2246,85 @@ function attachPrinterToKotItems(body) {
 }
 
 /* ===============================
-   API : PRINTERS IN APP
+   API : SERVER INFO & CONNECTION
 ================================ */
 
-app.get("/api/printers_app", async (req, res) => {
-  const printers = loadPrinters();
+function getSystemConnectionUrls(req) {
+  const netIps = getNetworkIps();
+  const hostHeader = req ? req.get("host") : null;
+  const protocol = req ? req.protocol : "http";
 
-  const result = await Promise.all(
-    printers.map(async (p) => ({
-      ...p,
-      online: await isPrinterOnline(p.connection.ip, p.connection.port),
-    })),
-  );
+  const localhostUrl = `http://localhost:${PORT}`;
+  const networkUrls = netIps.map((ip) => `http://${ip}:${PORT}`);
+  let domainUrl = DOMAIN ? (DOMAIN.startsWith("http") ? DOMAIN : `http://${DOMAIN}`) : "";
 
-  res.json({ printers: result });
+  const activeUrl = hostHeader ? `${protocol}://${hostHeader}` : localhostUrl;
+
+  return {
+    localhost: localhostUrl,
+    networkIps: netIps,
+    networkUrls: networkUrls,
+    domain: domainUrl,
+    activeUrl: activeUrl,
+  };
+}
+
+app.get("/api/server", (req, res) => {
+  const connections = getSystemConnectionUrls(req);
+  res.json({
+    status: "success",
+    data: {
+      serverId: SERVER_ID,
+      pairCode: SERVER_ID,
+      cloudAgent: cloudAgent ? cloudAgent.getInfo() : null,
+      port: PORT,
+      host: HOST,
+      authEnabled: ENABLE_AUTH,
+      cloudflare: process.env.CLOUDFLARE === "true" ? "Enabled" : "Disabled",
+      connections: connections,
+      createdAt: new Date().toISOString(),
+    },
+  });
 });
+
+app.get("/api/connection-info", (req, res) => {
+  const connections = getSystemConnectionUrls(req);
+  res.json({
+    status: "success",
+    serverId: SERVER_ID,
+    pairCode: SERVER_ID,
+    cloudAgent: cloudAgent ? cloudAgent.getInfo() : null,
+    port: PORT,
+    host: HOST,
+    authEnabled: ENABLE_AUTH,
+    connections: connections,
+  });
+});
+
+/* ===============================
+   PRINTER HELPERS & API
+================================ */
+
+function isPrinterOnline(ip, port = 9100, timeout = 1500) {
+  return new Promise((resolve) => {
+    if (!ip) return resolve(false);
+    const socket = new net.Socket();
+    socket.setTimeout(timeout);
+    socket.on("connect", () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.on("error", () => {
+      socket.destroy();
+      resolve(false);
+    });
+    socket.on("timeout", () => {
+      socket.destroy();
+      resolve(false);
+    });
+    socket.connect(port, ip);
+  });
+}
 
 function savePrinters(printers) {
   safeWrite(PRINTER_FILE, { printers });
@@ -1810,133 +2334,31 @@ function safeWrite(file, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2));
 }
 
-//-----------------------------------------------------
+app.get(["/api/printers_app", "/api/printers"], async (req, res) => {
+  const printers = loadPrinters();
 
-//   try {
-//       // Debug logging
-//   console.log("=== RAW REQUEST DEBUG ===");
-//   console.log("Content-Type:", req.headers["content-type"]);
-//   console.log("Raw body:", req.body);
-//   console.log("Body type:", typeof req.body);
-//   console.log("Body keys:", Object.keys(req.body || {}));
-//   console.log("=======================");
+  const result = await Promise.all(
+    printers.map(async (p) => ({
+      ...p,
+      online: await isPrinterOnline(p.connection?.ip, p.connection?.port || 9100),
+    })),
+  );
 
-//   const { printerName, printerIp, role } = req.body;
-
-//   // More detailed logging
-//   console.log("Parsed values:");
-//   console.log("printerName:", printerName, "Type:", typeof printerName);
-//   console.log("printerIp:", printerIp, "Type:", typeof printerIp);
-//   console.log("role:", role, "Type:", typeof role);
-
-//   // Your existing validation...
-//   if (!printerName || !printerIp || !role) {
-//     console.log("MISSING FIELDS DETECTED!");
-//     return res.status(400).json({
-//       error: "Missing required fields",
-//       required: ["printerName", "printerIp", "role"],
-//       received: {
-//         printerName: printerName || "undefined",
-//         printerIp: printerIp || "undefined",
-//         role: role || "undefined"
-//       }
-//     });
-//   }
-
-//     // Validate IP address format
-//     const ipRegex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
-//     if (!ipRegex.test(printerIp)) {
-//       return res.status(400).json({
-//         error: "Invalid IP address format"
-//       });
-//     }
-
-//     // Check if printer name already exists
-//     const existingByName = printers.find(p =>
-//       p.printerName.toLowerCase() === printerName.toLowerCase()
-//     );
-
-//     if (existingByName) {
-//       // Update existing printer if name matches
-//       existingByName.printerIp = printerIp;
-//       existingByName.role = role;
-//       existingByName.lastSeen = new Date().toISOString();
-
-//       console.log("Updated existing printer:", printerName);
-
-//       return res.json({
-//         status: "success",
-//         message: "Printer updated successfully",
-//         action: "updated",
-//         printer: existingByName
-//       });
-//     }
-
-//     // Check if IP already exists (prevent duplicates)
-//     const existingByIp = printers.find(p => p.printerIp === printerIp);
-//     if (existingByIp) {
-//       return res.status(409).json({
-//         error: "IP address already assigned to another printer",
-//         existingPrinter: {
-//           name: existingByIp.printerName,
-//           role: existingByIp.role
-//         }
-//       });
-//     }
-
-//     // Create new printer object
-//     const newPrinter = {
-//       printerName,
-//       printerIp,
-//       role: role.toUpperCase(), // Normalize role to uppercase
-//       isActive: true,
-//       createdAt: new Date().toISOString(),
-//       lastSeen: new Date().toISOString()
-//     };
-
-//     // Add to printers array
-//     printers.push(newPrinter);
-
-//     console.log("Registered new printer:", newPrinter);
-
-//     res.status(201).json({
-//       status: "success",
-//       message: "Printer registered successfully",
-//       action: "created",
-//       printer: newPrinter
-//     });
-
-//   } catch (error) {
-//     console.error("Error setting printer:", error);
-//     res.status(500).json({
-//       error: "Internal server error",
-//       message: error.message
-//     });
-//   }
-// });
-
-// Route for the root URL - serve your dashboard.html
-app.get("/", (req, res) => {
-  // If your HTML file is named dashboard.html
-  res.sendFile(path.join(__dirname, "dashboard.html"));
-  // If your HTML file has a different name, change it accordingly
+  res.json({ printers: result });
 });
 
-//-----------------------------------------------------------------------
-
-// ============== GET SET PRINTER =======================//
-
-// Update your existing /api/printer/save endpoint
-app.post("/api/printer/save_printers", authRequired, (req, res) => {
+// Save or update printer
+const handleSavePrinter = (req, res) => {
   const printers = loadPrinters();
-  // console.log(req.body, "tttttttttttttt");
   const incomingData = req.body;
 
-  // Generate ID from printerName (keep consistent if updating)
-  const generateIdFromName = (printerName, existingId = null) => {
-    if (existingId) return existingId; // Keep existing ID when updating
+  if (!incomingData) {
+    return res.status(400).json({ success: false, error: "No payload provided" });
+  }
 
-    const cleanName = printerName
+  const generateIdFromName = (printerName, existingId = null) => {
+    if (existingId) return existingId;
+    const cleanName = String(printerName)
       .toLowerCase()
       .replace(/\s+/g, "-")
       .replace(/[^a-z0-9-]/g, "");
@@ -1944,46 +2366,40 @@ app.post("/api/printer/save_printers", authRequired, (req, res) => {
     return `${cleanName}-${timestamp}`;
   };
 
-  // Handle both single and array input
-  const printersToSave = Array.isArray(incomingData)
-    ? incomingData
-    : [incomingData];
+  const printersToSave = Array.isArray(incomingData) ? incomingData : [incomingData];
   const results = [];
 
   printersToSave.forEach((data) => {
     let fullPrinter;
-    let isSimpleFormat = false;
 
-    // Check if it's in simple format (from /set_printer_app)
     if (data.printerName && data.printerIp) {
-      isSimpleFormat = true;
       fullPrinter = {
-        id: generateIdFromName(data.printerName),
+        id: data.id || generateIdFromName(data.printerName),
         name: data.printerName,
         role: data.role || "KITCHEN",
         enabled: data.enabled !== undefined ? data.enabled : true,
         connection: {
           ip: data.printerIp,
-          port: data.port || 9100,
+          port: parseInt(data.port || 9100),
         },
         paper: {
-          name: data.paperName || "RECIEPT(72mm)",
-          width: data.paperWidth || 576,
+          name: data.paperName || "RECEIPT(72mm)",
+          width: parseInt(data.paperWidth || 576),
         },
         printSettings: {
           cut: data.cut !== undefined ? data.cut : true,
         },
       };
-    }
-    // Check if it's in full format
-    else if (data.name && data.connection && data.connection.ip) {
+    } else if (data.name && data.connection && data.connection.ip) {
       fullPrinter = { ...data };
       if (!fullPrinter.id) {
         fullPrinter.id = generateIdFromName(data.name);
       }
-    }
-    // Invalid format
-    else {
+      fullPrinter.connection.port = parseInt(fullPrinter.connection.port || 9100);
+      if (fullPrinter.paper) {
+        fullPrinter.paper.width = parseInt(fullPrinter.paper.width || 576);
+      }
+    } else {
       results.push({
         status: "error",
         error: "Invalid printer format",
@@ -1992,41 +2408,36 @@ app.post("/api/printer/save_printers", authRequired, (req, res) => {
       return;
     }
 
-    // Check if printer with same name already exists
-    const existingIndexByName = printers.findIndex(
-      (p) => p.name.toLowerCase() === fullPrinter.name.toLowerCase(),
-    );
-
-    // Check if printer with same IP already exists (optional)
-    const existingIndexByIp = printers.findIndex(
-      (p) => p.connection.ip === fullPrinter.connection.ip,
-    );
-
-    let action = "created";
     let existingIndex = -1;
+    let action = "created";
 
-    // Priority 1: Update by name (if same printer name exists)
-    if (existingIndexByName >= 0) {
-      existingIndex = existingIndexByName;
-      action = "updated";
-      // Keep the existing ID when updating by name
-      fullPrinter.id = printers[existingIndex].id;
+    // Check 1: Find by explicit ID if provided
+    if (data.id) {
+      existingIndex = printers.findIndex((p) => p.id === data.id);
     }
-    // Priority 2: Update by IP (optional - uncomment if needed)
-    // else if (existingIndexByIp >= 0) {
-    //   existingIndex = existingIndexByIp;
-    //   action = "updated";
-    //   fullPrinter.id = printers[existingIndex].id;
-    // }
+
+    // Check 2: If not found by ID, check if any printer already has the same IP address
+    if (existingIndex < 0 && fullPrinter.connection && fullPrinter.connection.ip) {
+      existingIndex = printers.findIndex(
+        (p) => p.connection && p.connection.ip === fullPrinter.connection.ip
+      );
+    }
 
     if (existingIndex >= 0) {
-      // Update existing printer
+      // Preserve existing ID if data.id was not provided
+      if (!fullPrinter.id && printers[existingIndex].id) {
+        fullPrinter.id = printers[existingIndex].id;
+      }
       printers[existingIndex] = fullPrinter;
-      // console.log(`Updated printer "${fullPrinter.name}" (IP: ${fullPrinter.connection.ip})`);
+      action = "updated";
     } else {
-      // Add new printer
+      // Add new printer (Insert)
+      fullPrinter.id = fullPrinter.id || generateIdFromName(fullPrinter.name);
+      while (printers.some((p) => p.id === fullPrinter.id)) {
+        fullPrinter.id = `${generateIdFromName(fullPrinter.name)}-${Math.floor(Math.random() * 1000)}`;
+      }
       printers.push(fullPrinter);
-      // console.log(`Created new printer "${fullPrinter.name}" (IP: ${fullPrinter.connection.ip})`);
+      action = "created";
     }
 
     results.push({
@@ -2036,16 +2447,31 @@ app.post("/api/printer/save_printers", authRequired, (req, res) => {
     });
   });
 
-  // Save all changes
   savePrinters(printers);
 
-  // Check if there were any errors
-  const hasErrors = results.some((r) => r.status === "error");
+  // Log printer save action
+  results.forEach((r) => {
+    if (r.status === "success") {
+      addLogEntry(
+        "INFO",
+        "PRINTER_MGMT",
+        `Printer "${r.printer.name}" (${r.printer.role}) ${r.action} for IP ${r.printer.connection?.ip}:${r.printer.connection?.port}`,
+        { printer: r.printer, action: r.action }
+      );
+    }
+  });
 
+  const hasErrors = results.some((r) => r.status === "error");
   if (hasErrors) {
-    return res.status(207).json({
-      success: true,
-      message: `Processed with some errors`,
+    addLogEntry(
+      "ERROR",
+      "PRINTER_MGMT",
+      `Printer configuration save failed due to invalid format`,
+      { results: results.filter((r) => r.status === "error") }
+    );
+    return res.status(400).json({
+      success: false,
+      error: "Failed to save printer due to invalid format",
       results: results,
     });
   }
@@ -2054,7 +2480,225 @@ app.post("/api/printer/save_printers", authRequired, (req, res) => {
     success: true,
     message: `Successfully saved ${results.length} printer(s)`,
     results: results,
+    printer: results[0]?.printer,
   });
+};
+
+app.post("/api/printer/save", handleSavePrinter);
+app.post("/api/printer/save_printers", handleSavePrinter);
+
+// Delete printer endpoint
+app.post("/api/printer/delete", (req, res) => {
+  const { id } = req.body || {};
+  if (!id) {
+    addLogEntry("ERROR", "PRINTER_MGMT", "Printer delete failed: Printer ID missing in request");
+    return res.status(400).json({ success: false, error: "Printer ID is required" });
+  }
+
+  let printers = loadPrinters();
+  const initialLength = printers.length;
+  const deletedPrinter = printers.find((p) => p.id === id);
+  printers = printers.filter((p) => p.id !== id);
+
+  if (printers.length === initialLength) {
+    addLogEntry("ERROR", "PRINTER_MGMT", `Printer delete failed: Printer ID "${id}" not found`);
+    return res.status(404).json({ success: false, error: "Printer not found" });
+  }
+
+  savePrinters(printers);
+
+  addLogEntry(
+    "WARN",
+    "PRINTER_MGMT",
+    `Printer "${deletedPrinter?.name || id}" removed from system`,
+    { deletedId: id, deletedPrinter }
+  );
+
+  res.json({ success: true, message: "Printer deleted successfully" });
+});
+
+// Test printer endpoint
+app.post("/api/printer/test", async (req, res) => {
+  const { printerId, printerIp, printerPort } = req.body || {};
+  const printers = loadPrinters();
+  const printer = printers.find((p) => p.id === printerId) || {
+    connection: { ip: printerIp, port: printerPort || 9100 },
+    name: "Test Printer",
+  };
+
+  const targetIp = printer.connection?.ip || printerIp;
+  const targetPort = printer.connection?.port || printerPort || 9100;
+
+  if (!targetIp) {
+    addLogEntry("ERROR", "PRINTER_TEST", "Test print failed: Missing Printer IP", { reqBody: req.body });
+    return res.status(400).json({ success: false, error: "Printer IP is required" });
+  }
+
+  const online = await isPrinterOnline(targetIp, targetPort);
+  if (!online) {
+    const diag = analyzePrintFailure(targetIp, targetPort, "Printer offline or TCP port unreachable");
+    addLogEntry(
+      "ERROR",
+      "PRINTER_TEST",
+      `Test Print Failed: ${printer.name || "Printer"} (${targetIp}:${targetPort}) is UNREACHABLE`,
+      diag
+    );
+    return res.json({
+      success: false,
+      printed: false,
+      error: `Printer offline or unreachable at ${targetIp}:${targetPort}`,
+      diagnostics: diag,
+    });
+  }
+
+  try {
+    const socket = new net.Socket();
+    socket.connect(targetPort, targetIp, () => {
+      const initCmd = Buffer.from([0x1b, 0x40]);
+      const centerCmd = Buffer.from([0x1b, 0x61, 0x01]);
+      const title = Buffer.from("--- ANDROPRINT TEST PRINT ---\n\n", "utf8");
+      const text = Buffer.from(`Printer: ${printer.name || "ESC/POS"}\nIP: ${targetIp}:${targetPort}\nStatus: OK\nDate: ${new Date().toLocaleString()}\n\n\n`, "utf8");
+      const cutCmd = Buffer.from([0x1d, 0x56, 0x42, 0x00]);
+
+      socket.write(Buffer.concat([initCmd, centerCmd, title, text, cutCmd]));
+      socket.end();
+
+      addLogEntry(
+        "SUCCESS",
+        "PRINTER_TEST",
+        `Test Print Job SENT to "${printer.name || "Printer"}" (${targetIp}:${targetPort})`,
+        { printerName: printer.name, ip: targetIp, port: targetPort }
+      );
+
+      res.json({
+        success: true,
+        printed: true,
+        message: "Test print sent successfully",
+      });
+    });
+
+    socket.on("error", (err) => {
+      socket.destroy();
+      const diag = analyzePrintFailure(targetIp, targetPort, err.message);
+      addLogEntry(
+        "ERROR",
+        "PRINTER_TEST",
+        `Test Print Socket Error for "${printer.name || "Printer"}" (${targetIp}:${targetPort}): ${err.message}`,
+        diag
+      );
+      res.json({
+        success: false,
+        printed: false,
+        error: `Print connection error: ${err.message}`,
+        diagnostics: diag,
+      });
+    });
+  } catch (err) {
+    const diag = analyzePrintFailure(targetIp, targetPort, err.message);
+    addLogEntry(
+      "ERROR",
+      "PRINTER_TEST",
+      `Test Print Exception: ${err.message}`,
+      diag
+    );
+    res.json({
+      success: false,
+      printed: false,
+      error: `Test print error: ${err.message}`,
+      diagnostics: diag,
+    });
+  }
+});
+
+/* ===============================
+   SYSTEM LOGS API
+================================ */
+
+app.get("/api/logs", (req, res) => {
+  let filtered = [...systemLogs];
+  const { limit, level, type, search } = req.query;
+
+  if (level) {
+    filtered = filtered.filter((l) => l.level === String(level).toUpperCase());
+  }
+  if (type) {
+    filtered = filtered.filter((l) => l.type.includes(String(type).toUpperCase()));
+  }
+  if (search) {
+    const s = String(search).toLowerCase();
+    filtered = filtered.filter(
+      (l) =>
+        l.message.toLowerCase().includes(s) ||
+        JSON.stringify(l.details || {}).toLowerCase().includes(s)
+    );
+  }
+
+  const maxLimit = parseInt(limit) || 200;
+  res.json({
+    success: true,
+    total: filtered.length,
+    logs: filtered.slice(0, maxLimit),
+  });
+});
+
+app.post("/api/logs/clear", (req, res) => {
+  systemLogs = [];
+  try {
+    fs.writeFileSync(LOG_FILE, "");
+  } catch (err) { }
+  addLogEntry("INFO", "SERVER", "System logs cleared by user");
+  res.json({ success: true, message: "Logs cleared successfully" });
+});
+
+app.post("/api/cloud-test", (req, res) => {
+  const mqtt = require("mqtt");
+  const brokerUrl = process.env.MQTT_BROKER || "wss://broker.emqx.io:8084/mqtt";
+  const topic = `androprint/${SERVER_ID}/print`;
+
+  const testClient = mqtt.connect(brokerUrl, {
+    clientId: "tester_" + Math.random().toString(16).slice(2, 8),
+    clean: true,
+  });
+
+  testClient.on("connect", () => {
+    const payload = {
+      printerId: req.body?.printerId || "",
+      data: {
+        isInvoiceData: { isInvoice: true },
+        master: {
+          BillNo: "TEST-" + Math.floor(1000 + Math.random() * 9000),
+          BillPartyName: "MQTT Cloud Test User",
+          BillNetTotalField: "100.00",
+          BillDate: new Date().toLocaleDateString(),
+          BillTime: new Date().toLocaleTimeString(),
+        },
+        company: [{ CompanyName: "CLOUD PRINT TEST", Address1: "Pair Code: " + SERVER_ID }],
+        table: [{ ItemName: "Cloud Print Verification", Qty: 1, Rate: 100, Amount: 100 }],
+      },
+    };
+
+    testClient.publish(topic, JSON.stringify(payload), { qos: 1 }, (err) => {
+      testClient.end();
+      if (err) {
+        return res.status(500).json({ success: false, error: err.message });
+      }
+      res.json({
+        success: true,
+        message: "Cloud MQTT print dispatched successfully!",
+        pairCode: SERVER_ID,
+        topic: topic,
+      });
+    });
+  });
+
+  testClient.on("error", (err) => {
+    testClient.end();
+    res.status(500).json({ success: false, error: err.message });
+  });
+});
+
+app.get(["/logs", "/logs.html"], (req, res) => {
+  res.sendFile(path.join(PUBLIC_FOLDER, "logs.html"));
 });
 
 // async function prepareLogo() {
@@ -2149,11 +2793,39 @@ async function prepareLogo() {
    START SERVER
 ================================ */
 
-app.listen(PORT, () => {
-  console.log("================================");
-  console.log("ANDROPRINT SERVER RUNNING");
-  console.log("Local URL :", `http://localhost:${PORT}`);
-  console.log("Server ID :", SERVER_ID);
-  console.log("Auth      :", ENABLE_AUTH ? "ENABLED" : "DISABLED");
-  console.log("================================");
+app.listen(PORT, HOST, () => {
+  const netIps = getNetworkIps();
+  console.log("==================================================");
+  console.log("             ANDROPRINT SERVER RUNNING            ");
+  console.log("==================================================");
+  console.log("  Localhost URL :", `http://localhost:${PORT}`);
+  if (netIps.length > 0) {
+    netIps.forEach((ip) => {
+      console.log("  Network IP URL:", `http://${ip}:${PORT}`);
+    });
+  } else {
+    console.log("  Network IP URL: Not connected to network");
+  }
+  if (DOMAIN) {
+    const formattedDomain = DOMAIN.startsWith("http") ? DOMAIN : `http://${DOMAIN}`;
+    console.log("  Domain URL    :", formattedDomain);
+  }
+  console.log("--------------------------------------------------");
+  console.log("  Bound Host    :", HOST);
+  console.log("  Server ID     :", SERVER_ID);
+  console.log("  Auth          :", ENABLE_AUTH ? "ENABLED" : "DISABLED");
+  console.log("==================================================");
+
+  addLogEntry(
+    "INFO",
+    "SERVER",
+    `AndroPrint Server Started on port ${PORT} (${HOST})`,
+    {
+      port: PORT,
+      host: HOST,
+      networkIps: netIps,
+      domain: DOMAIN || null,
+      authEnabled: ENABLE_AUTH,
+    }
+  );
 });
