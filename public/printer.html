@@ -64,6 +64,41 @@
             color: #e74c3c;
         }
 
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .page-back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #ffffff;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            padding: 9px 15px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .page-back-btn:hover {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+            color: #1e293b;
+            transform: translateX(-2px);
+        }
+
+        .page-back-btn:active {
+            transform: scale(0.97);
+        }
+
         .header-actions {
             display: flex;
             gap: 10px;
@@ -589,6 +624,208 @@
             font-size: 1.1rem;
         }
 
+        .action-btn.remove-all {
+            background-color: #e74c3c;
+        }
+
+        .action-btn.remove-all:hover {
+            background-color: #c0392b;
+        }
+
+        .modern-confirm-dialog {
+            max-width: 440px;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+            animation: modalPopIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes modalPopIn {
+            from {
+                opacity: 0;
+                transform: scale(0.92) translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .modal-back-btn {
+            background: #f1f4f8;
+            border: 1px solid #dcdfe6;
+            color: #4a5568;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .modal-back-btn:hover {
+            background: #e2e8f0;
+            color: #1a202c;
+        }
+
+        .modal-back-btn:active {
+            transform: scale(0.96);
+        }
+
+        .modern-danger-icon {
+            width: 70px;
+            height: 70px;
+            margin: 0 auto 18px;
+            border-radius: 50%;
+            background: rgba(231, 76, 60, 0.12);
+            color: #e74c3c;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            box-shadow: 0 0 0 8px rgba(231, 76, 60, 0.05);
+        }
+
+        .dialog-headline {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .dialog-subtext {
+            color: #7f8c8d;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 25px;
+        }
+
+        .dialog-subtext code {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #e74c3c;
+            font-weight: 600;
+        }
+
+        .modern-dialog-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .dialog-btn {
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .dialog-btn:active {
+            transform: scale(0.97);
+        }
+
+        .dialog-btn.dialog-no {
+            background-color: #f1f3f5;
+            color: #495057;
+            border: 1px solid #ced4da;
+        }
+
+        .dialog-btn.dialog-no:hover {
+            background-color: #e9ecef;
+            color: #212529;
+        }
+
+        .dialog-btn.dialog-yes {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            box-shadow: 0 4px 14px rgba(231, 76, 60, 0.35);
+        }
+
+        .dialog-btn.dialog-yes:hover {
+            background: linear-gradient(135deg, #c0392b, #a93226);
+            box-shadow: 0 6px 18px rgba(231, 76, 60, 0.45);
+        }
+
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 16px;
+                padding-bottom: 20px;
+            }
+
+            .header-left {
+                width: 100%;
+                display: flex;
+                align-items: center;
+                gap: 14px;
+            }
+
+            h1 {
+                font-size: 1.55rem;
+            }
+
+            .header-actions {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                width: 100%;
+                gap: 10px;
+                margin-top: 4px;
+            }
+
+            .header-actions .action-btn {
+                width: 100%;
+                min-width: 0;
+                flex: none;
+                justify-content: center;
+                padding: 12px 10px;
+                font-size: 0.9rem;
+                border-radius: 10px;
+            }
+
+            .modal {
+                max-width: 94%;
+                margin: 10px;
+            }
+        }
+
+        @media (max-width: 520px) {
+            .header-left {
+                gap: 12px;
+            }
+
+            h1 {
+                font-size: 1.4rem;
+            }
+
+            .header-actions {
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+
+            .header-actions .action-btn.remove-all {
+                grid-column: 1 / -1;
+            }
+
+            .header-actions .action-btn {
+                padding: 12px 10px;
+                font-size: 0.92rem;
+            }
+        }
+
         @media (max-width: 480px) {
             .printer-header {
                 flex-direction: column;
@@ -619,14 +856,18 @@
                 justify-content: center;
             }
 
-            .header-actions {
-                flex-wrap: wrap;
-                justify-content: flex-end;
-            }
-
             .form-row {
                 flex-direction: column;
                 gap: 0;
+            }
+
+            .modern-dialog-actions {
+                grid-template-columns: 1fr;
+            }
+
+            .dialog-btn {
+                width: 100%;
+                min-height: 48px;
             }
         }
     </style>
@@ -635,11 +876,17 @@
 <body>
     <div class="container">
         <header>
-            <div>
-                <h1><i class="fas fa-print"></i> Printer Manager</h1>
-                <div class="status-badge">
-                    <i class="fas fa-circle"></i>
-                    <span id="statusText">Loading...</span>
+            <div class="header-left">
+                <a href="dashboard.html" class="page-back-btn" title="Back to Dashboard">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Back</span>
+                </a>
+                <div>
+                    <h1><i class="fas fa-print"></i> Printer Manager</h1>
+                    <div class="status-badge">
+                        <i class="fas fa-circle"></i>
+                        <span id="statusText">Loading...</span>
+                    </div>
                 </div>
             </div>
             <div class="header-actions">
@@ -650,6 +897,10 @@
                 <button class="action-btn add" id="addPrinterBtn">
                     <i class="fas fa-plus"></i>
                     Add Printer
+                </button>
+                <button class="action-btn remove-all" id="removeAllPrintersBtn">
+                    <i class="fas fa-trash-alt"></i>
+                    Remove Printers
                 </button>
             </div>
         </header>
@@ -670,6 +921,9 @@
     <div class="modal-overlay" id="printerModal" style="display: none;">
         <div class="modal">
             <div class="modal-header">
+                <button class="modal-back-btn" id="modalBackBtn" type="button" title="Back / Cancel">
+                    <i class="fas fa-arrow-left"></i> <span>Back</span>
+                </button>
                 <div class="modal-title" id="modalTitle">Add Printer</div>
                 <button class="modal-close" id="closeModal">&times;</button>
             </div>
@@ -747,6 +1001,9 @@
     <div class="modal-overlay" id="confirmationModal" style="display: none;">
         <div class="modal">
             <div class="modal-header">
+                <button class="modal-back-btn" id="confirmBackBtn" type="button" title="Back / Cancel">
+                    <i class="fas fa-arrow-left"></i> <span>Back</span>
+                </button>
                 <div class="modal-title">Confirm Action</div>
                 <button class="modal-close" id="closeConfirmModal">&times;</button>
             </div>
@@ -761,6 +1018,34 @@
                     <button class="btn-secondary" id="cancelConfirmBtn">Cancel</button>
                     <button class="btn-primary" id="confirmActionBtn" style="background-color: #e74c3c;">Delete
                         Printer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modern Remove All Printers Dialog Modal -->
+    <div class="modal-overlay" id="removeAllModal" style="display: none;">
+        <div class="modal modern-confirm-dialog">
+            <div class="modal-header">
+                <button class="modal-back-btn" id="removeAllBackBtn" type="button" title="Back / Cancel">
+                    <i class="fas fa-arrow-left"></i> <span>Back</span>
+                </button>
+                <div class="modal-title" style="color: #c0392b; font-size: 1.15rem;">Remove All Printers</div>
+                <button class="modal-close" id="closeRemoveAllModal" title="Close">&times;</button>
+            </div>
+            <div class="modal-body" style="text-align: center; padding: 28px 22px;">
+                <div class="modern-danger-icon">
+                    <i class="fas fa-trash-alt"></i>
+                </div>
+                <h3 class="dialog-headline">Are you sure you want to remove all printers?</h3>
+                <p class="dialog-subtext">This action will clear all printer configurations from <code>printer.json</code>. This cannot be undone.</p>
+                <div class="modern-dialog-actions">
+                    <button class="dialog-btn dialog-no" id="removeAllNoBtn" type="button">
+                        <i class="fas fa-times"></i> NO
+                    </button>
+                    <button class="dialog-btn dialog-yes" id="removeAllYesBtn" type="button">
+                        <i class="fas fa-trash-alt"></i> YES
+                    </button>
                 </div>
             </div>
         </div>
@@ -786,22 +1071,60 @@
             // Add event listeners
             document.getElementById('refreshBtn').addEventListener('click', refreshPrinters);
             document.getElementById('addPrinterBtn').addEventListener('click', openPrinterModal);
+            document.getElementById('modalBackBtn').addEventListener('click', closePrinterModal);
             document.getElementById('closeModal').addEventListener('click', closePrinterModal);
             document.getElementById('cancelBtn').addEventListener('click', closePrinterModal);
             document.getElementById('savePrinterBtn').addEventListener('click', savePrinter);
 
+            document.getElementById('confirmBackBtn').addEventListener('click', closeConfirmationModal);
             document.getElementById('closeConfirmModal').addEventListener('click', closeConfirmationModal);
             document.getElementById('cancelConfirmBtn').addEventListener('click', closeConfirmationModal);
             document.getElementById('confirmActionBtn').addEventListener('click', executeConfirmedAction);
+
+            // Remove all printers event listeners
+            document.getElementById('removeAllPrintersBtn').addEventListener('click', openRemoveAllModal);
+            document.getElementById('removeAllBackBtn').addEventListener('click', closeRemoveAllModal);
+            document.getElementById('closeRemoveAllModal').addEventListener('click', closeRemoveAllModal);
+            document.getElementById('removeAllNoBtn').addEventListener('click', closeRemoveAllModal);
+            document.getElementById('removeAllYesBtn').addEventListener('click', executeRemoveAllPrinters);
 
             // Close modals when clicking outside
             document.querySelectorAll('.modal-overlay').forEach(overlay => {
                 overlay.addEventListener('click', function (e) {
                     if (e.target === this) {
-                        if (this.id === 'printerModal') closePrinterModal();
-                        if (this.id === 'confirmationModal') closeConfirmationModal();
+                        closeAllModals();
                     }
                 });
+            });
+
+            // Backspace and Escape key listener for mobile/tablet/desktop navigation
+            document.addEventListener('keydown', function (e) {
+                const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName);
+                if (isInput) return;
+
+                const activeModal = document.querySelector('.modal-overlay[style*="display: flex"]');
+
+                if (e.key === 'Escape') {
+                    if (activeModal) {
+                        e.preventDefault();
+                        closeAllModals();
+                    }
+                } else if (e.key === 'Backspace') {
+                    e.preventDefault();
+                    if (activeModal) {
+                        closeAllModals();
+                    } else {
+                        window.location.href = 'dashboard.html';
+                    }
+                }
+            });
+
+            // Mobile/tablet hardware back button / gesture listener
+            window.addEventListener('popstate', function () {
+                const activeModal = document.querySelector('.modal-overlay[style*="display: flex"]');
+                if (activeModal) {
+                    closeAllModals();
+                }
             });
         });
 
@@ -1237,6 +1560,64 @@
                     showToast('Failed to delete printer', 'error');
                     closeConfirmationModal();
                 }
+            }
+        }
+
+        // Close all open modals helper
+        function closeAllModals() {
+            closePrinterModal();
+            closeConfirmationModal();
+            closeRemoveAllModal();
+        }
+
+        // Open Remove All Printers modal
+        function openRemoveAllModal() {
+            document.getElementById('removeAllModal').style.display = 'flex';
+            try {
+                history.pushState({ modal: 'removeAll' }, '');
+            } catch (e) {}
+        }
+
+        // Close Remove All Printers modal
+        function closeRemoveAllModal() {
+            document.getElementById('removeAllModal').style.display = 'none';
+        }
+
+        // Execute Remove All Printers (when YES is clicked)
+        async function executeRemoveAllPrinters() {
+            const yesBtn = document.getElementById('removeAllYesBtn');
+            const noBtn = document.getElementById('removeAllNoBtn');
+            yesBtn.disabled = true;
+            noBtn.disabled = true;
+            yesBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Removing...';
+
+            try {
+                showToast('Removing all printers...', 'success');
+
+                const response = await fetch('/api/printer/delete_all', {
+                    method: 'POST',
+                    headers: {
+                        ...AUTH,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('All printers removed successfully', 'success');
+                    closeRemoveAllModal();
+                    await refreshPrinters();
+                } else {
+                    showToast(data.error || 'Failed to remove printers', 'error');
+                }
+            } catch (error) {
+                console.error('Error removing all printers:', error);
+                showToast('Network error while removing printers', 'error');
+            } finally {
+                yesBtn.disabled = false;
+                noBtn.disabled = false;
+                yesBtn.innerHTML = '<i class="fas fa-trash-alt"></i> YES';
             }
         }
 
