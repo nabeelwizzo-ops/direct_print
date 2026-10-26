@@ -2600,6 +2600,30 @@ app.post("/api/printer/delete", (req, res) => {
   res.json({ success: true, message: "Printer deleted successfully" });
 });
 
+// Remove all printers endpoint
+app.post(
+  ["/api/printer/delete_all", "/api/printer/remove_all", "/api/printer/clear_all"],
+  (req, res) => {
+    const printers = loadPrinters();
+    const count = printers.length;
+
+    savePrinters([]);
+
+    addLogEntry(
+      "WARN",
+      "PRINTER_MGMT",
+      `All printers removed from system (${count} printer(s) cleared)`,
+      { count }
+    );
+
+    res.json({
+      success: true,
+      message: `All ${count} printer(s) removed successfully`,
+      count,
+    });
+  }
+);
+
 // Test printer endpoint
 app.post("/api/printer/test", async (req, res) => {
   const { printerId, printerIp, printerPort } = req.body || {};

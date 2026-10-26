@@ -40,6 +40,39 @@
             gap: 16px;
         }
 
+        .header-left-group {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .page-back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.08);
+            color: #e2e8f0;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            padding: 8px 14px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .page-back-btn:hover {
+            background: rgba(255, 255, 255, 0.18);
+            color: white;
+            transform: translateX(-2px);
+        }
+
+        .page-back-btn:active {
+            transform: scale(0.97);
+        }
+
         .brand {
             display: flex;
             align-items: center;
@@ -738,13 +771,18 @@
 
     <!-- Header -->
     <div class="header">
-        <a href="dashboard.html" class="brand">
-            <div class="brand-icon"><i class="fas fa-terminal"></i></div>
-            <div class="brand-title">
-                <h1>System Logs</h1>
-                <p>Real-Time Print & Server Activity</p>
-            </div>
-        </a>
+        <div class="header-left-group">
+            <a href="dashboard.html" class="page-back-btn" title="Back to Dashboard">
+                <i class="fas fa-arrow-left"></i> <span>Back</span>
+            </a>
+            <a href="dashboard.html" class="brand">
+                <div class="brand-icon"><i class="fas fa-terminal"></i></div>
+                <div class="brand-title">
+                    <h1>System Logs</h1>
+                    <p>Real-Time Print & Server Activity</p>
+                </div>
+            </a>
+        </div>
 
         <div class="nav-links">
             <a href="dashboard.html" class="nav-btn"><i class="fas fa-home"></i> Dashboard</a>
