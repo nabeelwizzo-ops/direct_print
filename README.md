@@ -150,7 +150,7 @@ LICENSE
 --------------------------------------------------
 MIT License
 
-Copyright (c) 2026 MSA MODS
+Copyright (c) 2026 MSA MODS - ANDRO PRINT
 
 Author: msamods
 GitHub: https://github.com/msamods
