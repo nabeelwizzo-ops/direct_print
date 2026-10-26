@@ -150,6 +150,7 @@ LICENSE
 --------------------------------------------------
 MIT License
 
+Copyright (c) 2026 MSA MODS
+
 Author: msamods
 GitHub: https://github.com/msamods
->>>>>>> 335cbeb361fa7f7310db1bcba68f79e569c9f676

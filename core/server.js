@@ -2348,13 +2348,25 @@ app.get(["/api/printers_app", "/api/printers"], async (req, res) => {
 });
 
 // Save or update printer
+let lastSaveSignature = "";
+let lastSaveTime = 0;
+let lastSaveResponse = null;
+
 const handleSavePrinter = (req, res) => {
-  const printers = loadPrinters();
   const incomingData = req.body;
 
   if (!incomingData) {
     return res.status(400).json({ success: false, error: "No payload provided" });
   }
+
+  // Prevent duplicate rapid calls (e.g. double submit or frontend sending twice within 600ms)
+  const currentSignature = JSON.stringify(incomingData);
+  const now = Date.now();
+  if (now - lastSaveTime < 600 && currentSignature === lastSaveSignature && lastSaveResponse) {
+    return res.json(lastSaveResponse);
+  }
+
+  const printers = loadPrinters();
 
   const generateIdFromName = (printerName, existingId = null) => {
     if (existingId) return existingId;
@@ -2366,7 +2378,33 @@ const handleSavePrinter = (req, res) => {
     return `${cleanName}-${timestamp}`;
   };
 
-  const printersToSave = Array.isArray(incomingData) ? incomingData : [incomingData];
+  let rawList = [];
+  if (Array.isArray(incomingData)) {
+    rawList = incomingData;
+  } else if (incomingData.printers && Array.isArray(incomingData.printers)) {
+    rawList = incomingData.printers;
+  } else if (incomingData.data && Array.isArray(incomingData.data)) {
+    rawList = incomingData.data;
+  } else {
+    rawList = [incomingData];
+  }
+
+  // Deduplicate incoming list in this single batch (keep latest)
+  const seenKeys = new Set();
+  const printersToSave = [];
+  for (let i = rawList.length - 1; i >= 0; i--) {
+    const item = rawList[i];
+    if (!item || typeof item !== "object") continue;
+    const itemRole = String(item.role || (item.printerRole || "KITCHEN")).trim().toUpperCase();
+    const itemName = String(item.printerName || item.name || "").trim().toLowerCase();
+    const itemIp = String(item.printerIp || item.connection?.ip || "").trim();
+    const key = item.id ? `id_${item.id}` : `${itemRole}_${itemName}_${itemIp}`;
+    if (!seenKeys.has(key)) {
+      seenKeys.add(key);
+      printersToSave.unshift(item);
+    }
+  }
+
   const results = [];
 
   printersToSave.forEach((data) => {
@@ -2376,7 +2414,7 @@ const handleSavePrinter = (req, res) => {
       fullPrinter = {
         id: data.id || generateIdFromName(data.printerName),
         name: data.printerName,
-        role: data.role || "KITCHEN",
+        role: data.role ? String(data.role).trim().toUpperCase() : "KITCHEN",
         enabled: data.enabled !== undefined ? data.enabled : true,
         connection: {
           ip: data.printerIp,
@@ -2392,6 +2430,7 @@ const handleSavePrinter = (req, res) => {
       };
     } else if (data.name && data.connection && data.connection.ip) {
       fullPrinter = { ...data };
+      fullPrinter.role = fullPrinter.role ? String(fullPrinter.role).trim().toUpperCase() : "KITCHEN";
       if (!fullPrinter.id) {
         fullPrinter.id = generateIdFromName(data.name);
       }
@@ -2411,21 +2450,57 @@ const handleSavePrinter = (req, res) => {
     let existingIndex = -1;
     let action = "created";
 
+    const explicitId = data.id || (data.printerId ? data.printerId : null);
+    const incomingName = String(fullPrinter.name || "").trim().toLowerCase();
+    const incomingRole = String(fullPrinter.role || "KITCHEN").trim().toUpperCase();
+    const incomingIp = String(fullPrinter.connection?.ip || "").trim();
+
     // Check 1: Find by explicit ID if provided
-    if (data.id) {
-      existingIndex = printers.findIndex((p) => p.id === data.id);
+    if (explicitId) {
+      existingIndex = printers.findIndex((p) => p.id === explicitId);
     }
 
-    // Check 2: If not found by ID, check if any printer already has the same IP address
-    if (existingIndex < 0 && fullPrinter.connection && fullPrinter.connection.ip) {
+    // Check 2: Find by Name AND Role
+    if (existingIndex < 0 && incomingName) {
       existingIndex = printers.findIndex(
-        (p) => p.connection && p.connection.ip === fullPrinter.connection.ip
+        (p) =>
+          p.name &&
+          p.name.trim().toLowerCase() === incomingName &&
+          String(p.role || "KITCHEN").trim().toUpperCase() === incomingRole
       );
     }
 
+    // Check 3: Find by Name alone
+    if (existingIndex < 0 && incomingName) {
+      existingIndex = printers.findIndex(
+        (p) => p.name && p.name.trim().toLowerCase() === incomingName
+      );
+    }
+
+    // Check 4: Role-specific IP matching
+    // Same IP can exist between CASHIER and KITCHEN sections without issue.
+    // If same IP comes for KITCHEN role -> update existing KITCHEN printer with that IP.
+    if (existingIndex < 0 && incomingIp) {
+      if (incomingRole === "KITCHEN") {
+        existingIndex = printers.findIndex(
+          (p) =>
+            String(p.role || "KITCHEN").trim().toUpperCase() === "KITCHEN" &&
+            p.connection &&
+            p.connection.ip === incomingIp
+        );
+      } else if (incomingRole === "CASHIER") {
+        existingIndex = printers.findIndex(
+          (p) =>
+            String(p.role || "").trim().toUpperCase() === "CASHIER" &&
+            p.connection &&
+            p.connection.ip === incomingIp
+        );
+      }
+    }
+
     if (existingIndex >= 0) {
-      // Preserve existing ID if data.id was not provided
-      if (!fullPrinter.id && printers[existingIndex].id) {
+      // Preserve existing ID if explicit ID was not provided
+      if (!explicitId && printers[existingIndex].id) {
         fullPrinter.id = printers[existingIndex].id;
       }
       printers[existingIndex] = fullPrinter;
@@ -2476,16 +2551,24 @@ const handleSavePrinter = (req, res) => {
     });
   }
 
-  res.json({
+  const responsePayload = {
     success: true,
     message: `Successfully saved ${results.length} printer(s)`,
     results: results,
     printer: results[0]?.printer,
-  });
+  };
+
+  lastSaveSignature = currentSignature;
+  lastSaveTime = now;
+  lastSaveResponse = responsePayload;
+
+  res.json(responsePayload);
 };
 
-app.post("/api/printer/save", handleSavePrinter);
-app.post("/api/printer/save_printers", handleSavePrinter);
+app.post(
+  ["/api/printer/save", "/api/printer/save_printers", "/api/save_printers", "/save_printers"],
+  handleSavePrinter
+);
 
 // Delete printer endpoint
 app.post("/api/printer/delete", (req, res) => {
