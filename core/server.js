@@ -39,6 +39,7 @@ const allowedExt = [".png", ".jpg", ".jpeg", ".webp", ".bmp"];
 const axios = require("axios");
 const { log } = require("console");
 const sharp = require("sharp");
+const QRCode = require("qrcode");
 
 const app = express();
 app.use(cors());
@@ -638,6 +639,30 @@ function fmt(val, digits = 2) {
   return isNaN(num) ? Number(0).toFixed(digits) : num.toFixed(digits);
 }
 
+
+async function generateQrBuffer(text, width = 220) {
+  try {
+    if (!text) return null;
+    const isZatca = String(text).length > 150;
+    const qrWidth = isZatca ? 230 : width;
+    const errorLevel = isZatca ? 'L' : 'M';
+
+    return await QRCode.toBuffer(String(text), {
+      type: 'png',
+      width: qrWidth,
+      margin: 1,
+      errorCorrectionLevel: errorLevel,
+      color: {
+        dark: '#000000',
+        light: '#ffffff',
+      },
+    });
+  } catch (err) {
+    console.error('❌ Error generating QR image buffer:', err.message);
+    return null;
+  }
+}
+
 async function printInvoice(printer, data) {
   console.log("✅ printInvoice");
   const {
@@ -655,6 +680,8 @@ async function printInvoice(printer, data) {
   const bill_form = data?.bill_form ?? "SALES B2B";
   const lang_mode = data?.lang_mode ?? "ENGLISH";
   const tax_mode = data?.bill_form ?? "GST";
+
+  const zatca_qr_code = master?.zatca_einv_qr_code ?? "";
 
   printer.alignCenter();
 
@@ -823,21 +850,41 @@ async function printInvoice(printer, data) {
   /* =========================
        7. QR CODE (ZATCA / EINVOICE)
     ========================= */
-  if (typ === "Direct Print 3Inch" && isInvoiceData?.isInvoice && qr_data) {
+  const qrCodeData = zatca_qr_code || qr_data || data?.qr_data || "";
+
+  if ((!typ || typ === "Direct Print 3Inch") && isInvoiceData?.isInvoice && qrCodeData) {
     printer.alignCenter();
 
-    if (qr_data) {
-      printer.printQR(qr_data, {
-        cellSize: 6,
-        correction: "M",
-      });
+    try {
+      const qrBuffer = await generateQrBuffer(qrCodeData);
+      if (qrBuffer) {
+        await printer.printImageBuffer(qrBuffer);
+      } else {
+        printer.printQR(qrCodeData, {
+          cellSize: qrCodeData.length > 150 ? 3 : 6,
+          correction: "M",
+        });
+      }
+    } catch (err) {
+      console.error("QR image print failed, falling back to printQR:", err.message);
+      try {
+        printer.printQR(qrCodeData, {
+          cellSize: qrCodeData.length > 150 ? 3 : 6,
+          correction: "M",
+        });
+      } catch (nativeErr) {
+        console.error("Native printQR fallback failed:", nativeErr.message);
+      }
     }
 
     printer.newLine();
+    
   }
   /* =========================
        8. FOOTER
     ========================= */
+  printer.newLine();
+  printer.newLine();
   printer.alignCenter();
   printer.println("Thank you for shopping with us!");
 
