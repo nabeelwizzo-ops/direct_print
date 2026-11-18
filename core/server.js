@@ -39,6 +39,7 @@ const allowedExt = [".png", ".jpg", ".jpeg", ".webp", ".bmp"];
 const axios = require("axios");
 const { log } = require("console");
 const sharp = require("sharp");
+const QRCode = require("qrcode");
 
 const app = express();
 app.use(cors());
@@ -454,12 +455,12 @@ app.post("/print", authRequired, (req, res) => {
     const mode = body.isInvoiceData?.isInvoice
       ? "INVOICE"
       : body.isInvoiceData?.isKot
-      ? "KOT"
-      : body.isInvoiceData?.isALLKot
-      ? "ALL_KOT"
-      : body.text
-      ? "TEXT"
-      : "UNKNOWN";
+        ? "KOT"
+        : body.isInvoiceData?.isALLKot
+          ? "ALL_KOT"
+          : body.text
+            ? "TEXT"
+            : "UNKNOWN";
 
     const billNo = body.master?.BillNo || (body.table && body.table[0]?.BillNo) || null;
     const partyName = body.master?.BillPartyName || null;
@@ -638,6 +639,30 @@ function fmt(val, digits = 2) {
   return isNaN(num) ? Number(0).toFixed(digits) : num.toFixed(digits);
 }
 
+
+async function generateQrBuffer(text, width = 220) {
+  try {
+    if (!text) return null;
+    const isZatca = String(text).length > 150;
+    const qrWidth = isZatca ? 230 : width;
+    const errorLevel = isZatca ? 'L' : 'M';
+
+    return await QRCode.toBuffer(String(text), {
+      type: 'png',
+      width: qrWidth,
+      margin: 1,
+      errorCorrectionLevel: errorLevel,
+      color: {
+        dark: '#000000',
+        light: '#ffffff',
+      },
+    });
+  } catch (err) {
+    console.error('❌ Error generating QR image buffer:', err.message);
+    return null;
+  }
+}
+
 async function printInvoice(printer, data) {
   console.log("✅ printInvoice");
   const {
@@ -655,6 +680,8 @@ async function printInvoice(printer, data) {
   const bill_form = data?.bill_form ?? "SALES B2B";
   const lang_mode = data?.lang_mode ?? "ENGLISH";
   const tax_mode = data?.bill_form ?? "GST";
+
+  const zatca_qr_code = master?.zatca_einv_qr_code ?? "";
 
   printer.alignCenter();
 
@@ -727,13 +754,41 @@ async function printInvoice(printer, data) {
     }
   }
 
-  if (master.table && master.table !== "null") {
-    printer.println("Table No: " + master.table);
+  // Check if bill party is Cash or 3
+  const isCashParty = master.BillPartyName === "Cash" || String(master.BillPartyName).trim() === "3";
+
+  // Check if customer address and phone are provided
+  const hasAddressAndPhone =
+    master.Address1 != null &&
+    master.Ph != null &&
+    master.Address1 !== "null" &&
+    master.Ph !== "null" &&
+    String(master.Address1).trim() !== "" &&
+    String(master.Ph).trim() !== "";
+
+  // Treat as parcel if table is explicitly PARCEL or Cash with delivery/address details
+  const isParcel = master.table === "PARCEL" || (isCashParty && hasAddressAndPhone);
+
+  // Table No: Print ONLY for Dine-in tables (skip for Parcel)
+  if (!isParcel) {
+    if (master.table && master.table !== "null") {
+      printer.println("Table No: " + master.table);
+    }
   }
+
   if (master.OrderNo !== undefined && master.OrderNo !== null && master.OrderNo !== "null") {
     printer.println("Token No: " + master.OrderNo);
   }
 
+  // Parcel section with printer line
+  if (isParcel) {
+    printer.drawLine();
+    printer.println("Section: " + "PARCEL");
+
+    if (hasAddressAndPhone) {
+      printer.println("Remarks: " + master.Address1 + " - " + master.Ph);
+    }
+  }
 
   printer.drawLine();
 
@@ -807,7 +862,9 @@ async function printInvoice(printer, data) {
 
   /* ===== TOTALS ===== */
   printer.leftRight("Sub Total:", fmt(master.BillTotalField, 2));
-  printer.leftRight("Disc Amt:", fmt(master.BillDiscAmtField, 2));
+  if (Number(master?.BillDiscAmtField) > 0) {
+    printer.leftRight("Disc Amt:", fmt(master.BillDiscAmtField, 2));
+  }
   printer.leftRight("Tax  Amt:", fmt(master.TItTaxAmt, 2));
   // printer.leftRight("Net Total:", fmt(master.BillNetTotalField, 2));
 
@@ -823,21 +880,41 @@ async function printInvoice(printer, data) {
   /* =========================
        7. QR CODE (ZATCA / EINVOICE)
     ========================= */
-  if (typ === "Direct Print 3Inch" && isInvoiceData?.isInvoice && qr_data) {
+  const qrCodeData = zatca_qr_code || qr_data || data?.qr_data || "";
+
+  if ((!typ || typ === "Direct Print 3Inch") && isInvoiceData?.isInvoice && qrCodeData) {
     printer.alignCenter();
 
-    if (qr_data) {
-      printer.printQR(qr_data, {
-        cellSize: 6,
-        correction: "M",
-      });
+    try {
+      const qrBuffer = await generateQrBuffer(qrCodeData);
+      if (qrBuffer) {
+        await printer.printImageBuffer(qrBuffer);
+      } else {
+        printer.printQR(qrCodeData, {
+          cellSize: qrCodeData.length > 150 ? 3 : 6,
+          correction: "M",
+        });
+      }
+    } catch (err) {
+      console.error("QR image print failed, falling back to printQR:", err.message);
+      try {
+        printer.printQR(qrCodeData, {
+          cellSize: qrCodeData.length > 150 ? 3 : 6,
+          correction: "M",
+        });
+      } catch (nativeErr) {
+        console.error("Native printQR fallback failed:", nativeErr.message);
+      }
     }
 
     printer.newLine();
+
   }
   /* =========================
        8. FOOTER
     ========================= */
+  printer.newLine();
+  printer.newLine();
   printer.alignCenter();
   printer.println("Thank you for shopping with us!");
 
@@ -916,8 +993,8 @@ async function printInvoice_custom2(printer, data) {
 
   const billParty =
     !master.BillPartyName ||
-    String(master.BillPartyName).trim() === "3" ||
-    String(master.BillPartyName).trim().toLowerCase() === "cash"
+      String(master.BillPartyName).trim() === "3" ||
+      String(master.BillPartyName).trim().toLowerCase() === "cash"
       ? "Cash"
       : master.BillPartyName;
 
@@ -1094,8 +1171,8 @@ async function printInvoice_custom(printer, data) {
 
     const billParty =
       !master.BillPartyName ||
-      String(master.BillPartyName).trim() === "3" ||
-      String(master.BillPartyName).trim().toLowerCase() === "cash"
+        String(master.BillPartyName).trim() === "3" ||
+        String(master.BillPartyName).trim().toLowerCase() === "cash"
         ? "Cash"
         : master.BillPartyName;
 
@@ -1426,7 +1503,33 @@ async function all_kot_print(printer, data) {
   ========================= */
   printer.println("BILL  NO: " + (master.BillNo || "0"));
   printer.println("STAFF: " + (master.Lorry || "NIL"));
-  printer.println("TABLE NO: " + (master.table || "0"));
+
+  // Check if bill party is Cash or 3
+  const isCashParty =
+    !master.BillPartyName ||
+    String(master.BillPartyName).trim() === "3" ||
+    String(master.BillPartyName).trim().toLowerCase() === "cash";
+
+  // Check if customer address and phone are provided
+  const hasAddressAndPhone =
+    master.Address1 != null &&
+    master.Ph != null &&
+    master.Address1 !== "null" &&
+    master.Ph !== "null" &&
+    String(master.Address1).trim() !== "" &&
+    String(master.Ph).trim() !== "";
+
+  // Treat as parcel if table is explicitly PARCEL or Cash with delivery/address details
+  const isParcel = master.table === "PARCEL" || (isCashParty && hasAddressAndPhone);
+
+  if (isParcel) {
+    printer.println("Section: PARCEL");
+    if (hasAddressAndPhone) {
+      printer.println("Remarks: " + master.Address1 + " - " + master.Ph);
+    }
+  } else {
+    printer.println("TABLE NO: " + (master.table || "0"));
+  }
 
   printer.drawLine();
 
@@ -1624,7 +1727,33 @@ async function kot_print(printer, data) {
   ========================= */
   printer.println("BILL  NO: " + (master.BillNo || "0"));
   printer.println("STAFF: " + (master.Lorry || "NIL"));
-  printer.println("TABLE NO: " + (master.table || "0"));
+
+  // Check if bill party is Cash or 3
+  const isCashParty =
+    !master.BillPartyName ||
+    String(master.BillPartyName).trim() === "3" ||
+    String(master.BillPartyName).trim().toLowerCase() === "cash";
+
+  // Check if customer address and phone are provided
+  const hasAddressAndPhone =
+    master.Address1 != null &&
+    master.Ph != null &&
+    master.Address1 !== "null" &&
+    master.Ph !== "null" &&
+    String(master.Address1).trim() !== "" &&
+    String(master.Ph).trim() !== "";
+
+  // Treat as parcel if table is explicitly PARCEL or Cash with delivery/address details
+  const isParcel = master.table === "PARCEL" || (isCashParty && hasAddressAndPhone);
+
+  if (isParcel) {
+    printer.println("Section: PARCEL");
+    if (hasAddressAndPhone) {
+      printer.println("Remarks: " + master.Address1 + " - " + master.Ph);
+    }
+  } else {
+    printer.println("TABLE NO: " + (master.table || "0"));
+  }
 
   printer.drawLine();
 
