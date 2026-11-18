@@ -455,12 +455,12 @@ app.post("/print", authRequired, (req, res) => {
     const mode = body.isInvoiceData?.isInvoice
       ? "INVOICE"
       : body.isInvoiceData?.isKot
-      ? "KOT"
-      : body.isInvoiceData?.isALLKot
-      ? "ALL_KOT"
-      : body.text
-      ? "TEXT"
-      : "UNKNOWN";
+        ? "KOT"
+        : body.isInvoiceData?.isALLKot
+          ? "ALL_KOT"
+          : body.text
+            ? "TEXT"
+            : "UNKNOWN";
 
     const billNo = body.master?.BillNo || (body.table && body.table[0]?.BillNo) || null;
     const partyName = body.master?.BillPartyName || null;
@@ -754,13 +754,41 @@ async function printInvoice(printer, data) {
     }
   }
 
-  if (master.table && master.table !== "null") {
-    printer.println("Table No: " + master.table);
+  // Check if bill party is Cash or 3
+  const isCashParty = master.BillPartyName === "Cash" || String(master.BillPartyName).trim() === "3";
+
+  // Check if customer address and phone are provided
+  const hasAddressAndPhone =
+    master.Address1 != null &&
+    master.Ph != null &&
+    master.Address1 !== "null" &&
+    master.Ph !== "null" &&
+    String(master.Address1).trim() !== "" &&
+    String(master.Ph).trim() !== "";
+
+  // Treat as parcel if table is explicitly PARCEL or Cash with delivery/address details
+  const isParcel = master.table === "PARCEL" || (isCashParty && hasAddressAndPhone);
+
+  // Table No: Print ONLY for Dine-in tables (skip for Parcel)
+  if (!isParcel) {
+    if (master.table && master.table !== "null") {
+      printer.println("Table No: " + master.table);
+    }
   }
+
   if (master.OrderNo !== undefined && master.OrderNo !== null && master.OrderNo !== "null") {
     printer.println("Token No: " + master.OrderNo);
   }
 
+  // Parcel section with printer line
+  if (isParcel) {
+    printer.drawLine();
+    printer.println("Section: " + "PARCEL");
+
+    if (hasAddressAndPhone) {
+      printer.println("Remarks: " + master.Address1 + " - " + master.Ph);
+    }
+  }
 
   printer.drawLine();
 
@@ -834,7 +862,9 @@ async function printInvoice(printer, data) {
 
   /* ===== TOTALS ===== */
   printer.leftRight("Sub Total:", fmt(master.BillTotalField, 2));
-  printer.leftRight("Disc Amt:", fmt(master.BillDiscAmtField, 2));
+  if (Number(master?.BillDiscAmtField) > 0) {
+    printer.leftRight("Disc Amt:", fmt(master.BillDiscAmtField, 2));
+  }
   printer.leftRight("Tax  Amt:", fmt(master.TItTaxAmt, 2));
   // printer.leftRight("Net Total:", fmt(master.BillNetTotalField, 2));
 
@@ -878,7 +908,7 @@ async function printInvoice(printer, data) {
     }
 
     printer.newLine();
-    
+
   }
   /* =========================
        8. FOOTER
@@ -963,8 +993,8 @@ async function printInvoice_custom2(printer, data) {
 
   const billParty =
     !master.BillPartyName ||
-    String(master.BillPartyName).trim() === "3" ||
-    String(master.BillPartyName).trim().toLowerCase() === "cash"
+      String(master.BillPartyName).trim() === "3" ||
+      String(master.BillPartyName).trim().toLowerCase() === "cash"
       ? "Cash"
       : master.BillPartyName;
 
@@ -1141,8 +1171,8 @@ async function printInvoice_custom(printer, data) {
 
     const billParty =
       !master.BillPartyName ||
-      String(master.BillPartyName).trim() === "3" ||
-      String(master.BillPartyName).trim().toLowerCase() === "cash"
+        String(master.BillPartyName).trim() === "3" ||
+        String(master.BillPartyName).trim().toLowerCase() === "cash"
         ? "Cash"
         : master.BillPartyName;
 
@@ -1473,7 +1503,33 @@ async function all_kot_print(printer, data) {
   ========================= */
   printer.println("BILL  NO: " + (master.BillNo || "0"));
   printer.println("STAFF: " + (master.Lorry || "NIL"));
-  printer.println("TABLE NO: " + (master.table || "0"));
+
+  // Check if bill party is Cash or 3
+  const isCashParty =
+    !master.BillPartyName ||
+    String(master.BillPartyName).trim() === "3" ||
+    String(master.BillPartyName).trim().toLowerCase() === "cash";
+
+  // Check if customer address and phone are provided
+  const hasAddressAndPhone =
+    master.Address1 != null &&
+    master.Ph != null &&
+    master.Address1 !== "null" &&
+    master.Ph !== "null" &&
+    String(master.Address1).trim() !== "" &&
+    String(master.Ph).trim() !== "";
+
+  // Treat as parcel if table is explicitly PARCEL or Cash with delivery/address details
+  const isParcel = master.table === "PARCEL" || (isCashParty && hasAddressAndPhone);
+
+  if (isParcel) {
+    printer.println("Section: PARCEL");
+    if (hasAddressAndPhone) {
+      printer.println("Remarks: " + master.Address1 + " - " + master.Ph);
+    }
+  } else {
+    printer.println("TABLE NO: " + (master.table || "0"));
+  }
 
   printer.drawLine();
 
@@ -1671,7 +1727,33 @@ async function kot_print(printer, data) {
   ========================= */
   printer.println("BILL  NO: " + (master.BillNo || "0"));
   printer.println("STAFF: " + (master.Lorry || "NIL"));
-  printer.println("TABLE NO: " + (master.table || "0"));
+
+  // Check if bill party is Cash or 3
+  const isCashParty =
+    !master.BillPartyName ||
+    String(master.BillPartyName).trim() === "3" ||
+    String(master.BillPartyName).trim().toLowerCase() === "cash";
+
+  // Check if customer address and phone are provided
+  const hasAddressAndPhone =
+    master.Address1 != null &&
+    master.Ph != null &&
+    master.Address1 !== "null" &&
+    master.Ph !== "null" &&
+    String(master.Address1).trim() !== "" &&
+    String(master.Ph).trim() !== "";
+
+  // Treat as parcel if table is explicitly PARCEL or Cash with delivery/address details
+  const isParcel = master.table === "PARCEL" || (isCashParty && hasAddressAndPhone);
+
+  if (isParcel) {
+    printer.println("Section: PARCEL");
+    if (hasAddressAndPhone) {
+      printer.println("Remarks: " + master.Address1 + " - " + master.Ph);
+    }
+  } else {
+    printer.println("TABLE NO: " + (master.table || "0"));
+  }
 
   printer.drawLine();
 

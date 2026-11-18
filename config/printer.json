@@ -53,7 +53,7 @@
     },
     {
       "id": "fish-400316",
-      "name": "FISH",
+      "name": "KITCHEN 2",
       "role": "KITCHEN",
       "enabled": true,
       "connection": {
@@ -109,6 +109,40 @@
       "enabled": true,
       "connection": {
         "ip": "192.168.123.106",
+        "port": 9100
+      },
+      "paper": {
+        "name": "RECEIPT(72mm)",
+        "width": 576
+      },
+      "printSettings": {
+        "cut": true
+      }
+    },
+    {
+      "id": "kitchen-1-082564",
+      "name": "KITCHEN 1",
+      "role": "KITCHEN",
+      "enabled": true,
+      "connection": {
+        "ip": "192.168.1.123",
+        "port": 9100
+      },
+      "paper": {
+        "name": "RECEIPT(72mm)",
+        "width": 576
+      },
+      "printSettings": {
+        "cut": true
+      }
+    },
+    {
+      "id": "kitchen-3-bt-082567",
+      "name": "KITCHEN 3-BT",
+      "role": "KITCHEN",
+      "enabled": true,
+      "connection": {
+        "ip": "00:12:5B:04:24:4E",
         "port": 9100
       },
       "paper": {
